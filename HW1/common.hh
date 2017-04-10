@@ -7,6 +7,9 @@
     09 Apr 2017 - Tim Menninger: Created with gcd and sign
 */
 
+#ifndef COMMON
+#define COMMON
+
 /*
  GCD
 
@@ -34,3 +37,5 @@ static int GCD(int a, int b) {
 static int sign(int n) {
     return (n > 0 ? 1 : (n < 0 ? -1 : 0));
 }
+
+#endif // ifndef COMMON

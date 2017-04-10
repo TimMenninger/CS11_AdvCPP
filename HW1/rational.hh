@@ -1,3 +1,12 @@
+/*
+ rational.hh
+
+ Contains the Rational class definition.
+
+ Revisions:
+    09 Apr 2017 - Tim Menninger: Created
+*/
+
 #ifndef RATIONAL
 #define RATIONAL
 
@@ -8,9 +17,9 @@
 
  Emulates rational numbers, their representation and common arithmetic that
  can be done to them.
-
 */
 class Rational {
+private:
     /******************************
      MEMBERS
      ******************************/
@@ -29,6 +38,11 @@ public:
     Rational();                             // Initializes to 0/1
     Rational(int n);                        // Initializes to n/1
     Rational(int n, int d);                 // Initializes to n/d
+
+    /******************************
+     DESTRUCTOR
+     ******************************/
+    ~Rational();                            // Does nothing
 
     /******************************
      ACCESSORS

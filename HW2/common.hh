@@ -1,0 +1,36 @@
+/*
+ common.hh
+
+ Contains functions that are common among vector files in HW2
+
+ Revisions:
+    09 Apr 2017 - Tim Menninger: Created
+*/
+
+#ifndef COMMON
+#define COMMON
+
+/*
+ smallestPow2
+
+ Returns the smallest power of two greater than or equal to the argument.  If
+ the argument is 0 or negative, it returns 0.
+
+ Arguments:     n (int) - Value to find smallest power of 2 greater than.
+
+ Returns:       (int) - Smallest power of 2 greater than argument.
+*/
+static int smallestPow2(int n) {
+    // Return 0 if n is less than or equal to 0
+    if (n <= 0)
+        return 0;
+
+    // Otherwise find smallest power of 2 greater than argument
+    int out = 1;
+    // Double until greater than or equal to argument
+    while (out < n)
+        out <<= 1;
+    return out;
+}
+
+#endif // ifndef COMMON

@@ -1,3 +1,14 @@
+/*
+ rational.cc
+
+ Contains the implementation of the Rational class defined in rational.hh.
+ This allows the user to use the Rational class in lieu of double or float to
+ represent rational numbers.
+
+ Revisions:
+    09 Apr 2017 - Tim Menninger: Created
+*/
+
 #include "rational.hh"
 #include "common.hh"
 
@@ -42,8 +53,13 @@ void Rational::simplify() {
 
      return;
  }
-Rational::Rational(int n) : m_num(n), m_denom(1) { }
-Rational::Rational() : m_num(0), m_denom(1) { }
+Rational::Rational(int n) : m_num(n), m_denom(1) {}
+Rational::Rational() : m_num(0), m_denom(1) {}
+
+/******************************
+ DESTRUCTOR
+ ******************************/
+Rational::~Rational() {}
 
 /******************************
  ARITHMETIC
@@ -132,9 +148,9 @@ const Rational Rational::operator~() {
 const Rational Rational::operator+(const Rational& r) {
     // Put fractions in common denominator, which we can do by multiplying
     // each by denominator/denominator of the other
-    int d = this->m_denom * ((Rational) r).denom();
-    int n = this->m_num * ((Rational) r).denom() +
-               ((Rational) r).num() * this->m_denom;
+    int d = this->m_denom * r.m_denom;
+    int n = this->m_num * r.m_denom +
+               r.m_num * this->m_denom;
 
     return Rational(n, d);
 }
@@ -192,8 +208,8 @@ const Rational Rational::operator/(const Rational& r) {
 */
 const Rational Rational::operator*(const Rational& r) {
     // Multiply numerators with each other and then denominators
-    int n = this->m_num * ((Rational) r).num();
-    int d = this->m_denom * ((Rational) r).denom();
+    int n = this->m_num * r.m_num;
+    int d = this->m_denom * r.m_denom;
 
     return Rational(n, d);
 }
@@ -480,8 +496,8 @@ const Rational::operator double() {
 */
 ostream& operator<<(ostream& out, const Rational& r) {
     // Get the numerator and denominator for easier accessing
-    int n = ((Rational) r).num();
-    int d = ((Rational) r).denom();
+    int n = r.m_num;
+    int d = r.m_denom;
     // Put the numerator on the ostream. Only put the denominator if it != 1
     out << n;
     if (d != 1)
