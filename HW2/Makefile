@@ -1,9 +1,8 @@
 CC = g++
 CPPFLAGS = -std=c++0x -g -Wall -pedantic
 DEPS = vector.hh testbase.h
-OBJ = test1.o test-vector.o testbase.o
 
-all: test1 test-vector
+all: test1 test2 test3 test-vector
 
 again: clean all
 
@@ -13,8 +12,14 @@ again: clean all
 test1: test1.o
 	$(CC) -o $@ $^ $(CPPFLAGS) $(INC)
 
+test2: test2.o
+	$(CC) -o $@ $^ $(CPPFLAGS) $(INC)
+
+test3: test3.o
+	$(CC) -o $@ $^ $(CPPFLAGS) $(INC)
+
 test-vector: test-vector.o testbase.o
 	$(CC) -o $@ $^ $(CPPFLAGS) $(INC)
 
 clean :
-	rm -rf test1 *.o *.dSYM
+	rm -rf test1 test2 test3 test-vector *.o *.dSYM

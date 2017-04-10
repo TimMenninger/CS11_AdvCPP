@@ -1,0 +1,5 @@
+test1 = 9.9K
+test2 = 11K
+test3 = 12K
+
+Vector ~= 1K

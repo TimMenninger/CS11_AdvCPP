@@ -20,7 +20,7 @@
 
  Returns:       (int) - Smallest power of 2 greater than argument.
 */
-static int smallestPow2(int n) {
+static inline int smallestPow2(int n) {
     // Return 0 if n is less than or equal to 0
     if (n <= 0)
         return 0;
