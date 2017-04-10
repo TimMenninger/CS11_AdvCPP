@@ -31,6 +31,8 @@ private:
 
     /* Re-initializes the array pointer, assuming arr is defined. */
     void reinit(int new_cap) {
+        /* Don't want this to be called with a zero-argument. */
+        new_cap = new_cap == 0 ? 1 : new_cap;
         /* Make space for new array size, copying over contents */
         arr = (T*) realloc(arr, new_cap * sizeof(T));
         /* Initialize anything new */
@@ -67,9 +69,7 @@ public:
 
     /* Copy constructor */
     Vector(const Vector& v) : len(v.len), cap(v.cap) {
-        init();
-        for (int i = 0; i < cap; ++i)
-            arr[i] = v.arr[i];
+        deepcopy(v.arr);
     };
 
     /* Move constructor */
@@ -139,20 +139,16 @@ public:
        smaller than the current one, nothing happens. */
     void reserve(int new_cap) {
         /* Only change anything if new cap is larger */
-        if (new_cap <= cap)
-            return;
-        reinit(new_cap);
+        if (new_cap > cap)
+            reinit(new_cap);
     };
 
     /* If the capacity is larger than the size, this updates the capacity to
        be the same as the size, and reallocates the array. */
     void shrink_to_fit() {
         /* Don't need to do anything if cap is already the same as size */
-        if (cap <= len)
-            return;
-
-        /* Otherwise update cap and the array allocation */
-        reinit(len);
+        if (cap > len)
+            reinit(len);
     };
 
     /* Resizes the array.  This initializes anything that was previously within
@@ -176,12 +172,6 @@ public:
 
     /* Appends element to the end of the array. */
     void push_back(const T& elem) {
-        /* If the array has no capacity, we need to init it. */
-        if (cap == 0) {
-            cap = 1;
-            init();
-        }
-
         /* If we need more space, allocate it. */
         while (len >= cap)
             reinit(cap << 1);
@@ -192,12 +182,6 @@ public:
 
     /* Appends element to the end of the array. */
     void push_back(T&& elem) {
-        /* If the array has no capacity, we need to init it. */
-        if (cap == 0) {
-            cap = 1;
-            init();
-        }
-
         /* If we need more space, allocate it. */
         while (len >= cap)
             reinit(cap << 1);
