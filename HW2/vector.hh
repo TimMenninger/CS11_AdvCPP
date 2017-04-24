@@ -27,7 +27,7 @@ private:
         arr = cap == 0 ? NULL : (T*) malloc(cap * sizeof(T));
         for (int i = 0; i < cap; ++i)
             arr[i] = T();
-    }
+    };
 
     /* Re-initializes the array pointer, assuming arr is defined. */
     void reinit(int new_cap) {
@@ -40,15 +40,7 @@ private:
             arr[i] = T();
         /* Update capacity */
         cap = new_cap;
-    }
-
-    /* Copies everything from first array to second.  This assumes that the
-       arrays have compatible capacities. */
-    void deepcopy(T* v) {
-        init();
-        for (int i = 0; i < cap; ++i)
-            arr[i] = v[i];
-    }
+    };
 
 public:
 
@@ -65,7 +57,8 @@ public:
 
     /* Copy constructor */
     Vector(const Vector<T>& v) : len(v.len), cap(v.cap) {
-        deepcopy(v.arr);
+        init();
+        memcpy((void *) arr, (void *) v.arr, cap * sizeof(T));
     };
 
     /* Move constructor */

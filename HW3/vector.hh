@@ -50,14 +50,6 @@ private:
         cap = new_cap;
     };
 
-    /* Copies everything from first array to second.  This assumes that the
-       arrays have compatible capacities. */
-    void deepcopy(T* v) {
-        init();
-        for (int i = 0; i < cap; ++i)
-            arr[i] = v[i];
-    };
-
 public:
 
     typedef T* iterator;
@@ -73,7 +65,8 @@ public:
 
     /* Copy constructor */
     VectorBase(const VectorBase<T>& v) : len(v.size()), cap(v.capacity()) {
-        deepcopy(v.arr);
+        init();
+        memcpy((void *) arr, (void *) v.arr, cap * sizeof(T));
     };
 
     /* Move constructor */
