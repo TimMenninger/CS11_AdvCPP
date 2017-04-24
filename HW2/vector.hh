@@ -31,10 +31,10 @@ private:
 
     /* Re-initializes the array pointer, assuming arr is defined. */
     void reinit(int new_cap) {
-        /* Don't want this to be called with a zero-argument. */
-        new_cap = new_cap == 0 ? 1 : new_cap;
+        /* If the new capacity is 0, free the array. */
+        if (new_cap == 0 && arr) delete (arr);
         /* Make space for new array size, copying over contents */
-        arr = (T*) realloc(arr, new_cap * sizeof(T));
+        arr = new_cap == 0 ? NULL : (T*) realloc(arr, new_cap * sizeof(T));
         /* Initialize anything new */
         for (int i = cap; i < new_cap; ++i)
             arr[i] = T();
@@ -52,10 +52,6 @@ private:
 
 public:
 
-    /******************************
-     MEMBERS
-     ******************************/
-
     typedef T* iterator;
 
 
@@ -68,14 +64,14 @@ public:
     Vector(int size, int cap) : len(size), cap(cap) { init(); };
 
     /* Copy constructor */
-    Vector(const Vector& v) : len(v.len), cap(v.cap) {
+    Vector(const Vector<T>& v) : len(v.len), cap(v.cap) {
         deepcopy(v.arr);
     };
 
     /* Move constructor */
-    Vector(Vector && v) : len(v.len), cap(v.cap) {
-        deepcopy(v.arr);
-        v = Vector();
+    Vector(Vector<T>&& v) {
+        memcpy((void *) this, (void *) &v, sizeof(Vector<T>&&));
+        memset((void *) &v, 0, sizeof(Vector<T>&&));
     };
 
 
@@ -110,18 +106,17 @@ public:
      ******************************/
 
     /* Copy assignment */
-    Vector operator=(const Vector& v) {
+    Vector operator=(const Vector<T>& v) {
         if (this != &v)
             *this = Vector(v);
         return *this;
     };
 
     /* Move assignment */
-    Vector operator=(const Vector&& v) {
+    Vector operator=(const Vector<T>&& v) {
         if (this != &v) {
-            len = v.len;
-            cap = v.cap;
-            deepcopy(v.arr);
+            memcpy((void *) this, (void *) &v, sizeof(Vector<T>&&));
+            memset((void *) &v, 0, sizeof(Vector<T>&&));
         }
         return *this;
     };
@@ -174,7 +169,7 @@ public:
     void push_back(const T& elem) {
         /* If we need more space, allocate it. */
         while (len >= cap)
-            reinit(cap << 1);
+            reinit(std::max(1, cap) << 1);
 
         /* Add to the end of the array and increment len */
         arr[len++] = elem;
@@ -184,7 +179,7 @@ public:
     void push_back(T&& elem) {
         /* If we need more space, allocate it. */
         while (len >= cap)
-            reinit(cap << 1);
+            reinit(std::max(1, cap) << 1);
 
         /* Add to the end of the array and increment len */
         arr[len++] = elem;
