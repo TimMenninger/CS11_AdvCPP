@@ -83,8 +83,7 @@ public:
     int capacity() { return cap; }
 
     /* Returns the element at the argued index. */
-    T& at(int i) { return arr[i]; }
-    const T& at(int i) const { return arr[i]; }
+    T at(int i) { return arr[i]; }
 
     /* Returns an iterator at the beginning of the array, pointing to the
        first element. */

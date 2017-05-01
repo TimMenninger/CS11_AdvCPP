@@ -1,6 +1,6 @@
 CC = g++
 CPPFLAGS = -std=c++0x -g -Wall -pedantic
-DEPS = vector.hh testbase.hh
+DEPS = vector.hh bit_mutator.hh testbase.hh
 
 all: test-vector test
 

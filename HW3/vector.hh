@@ -91,8 +91,7 @@ public:
     int capacity() const { return cap; };
 
     /* Returns the element at the argued index. */
-    T& at(int i) { return arr[i]; };
-    const T& at(int i) const { return arr[i]; };
+    T at(int i) { return arr[i]; };
 
     /* Returns an iterator at the beginning of the array, pointing to the
        first element. */
@@ -391,10 +390,7 @@ public:
     int capacity() const { return Base::capacity(); };
 
     /* Returns the element at the argued index. */
-    T*& at(int i) { return reinterpret_cast<T*&>(Base::at(i)); };
-    const T*& at(int i) const {
-        return reinterpret_cast<const T*&>(Base::at(i));
-    };
+    T* at(int i) { return reinterpret_cast<T*>(Base::at(i)); };
 
     /* Returns an iterator at the beginning of the array, pointing to the
        first element. */

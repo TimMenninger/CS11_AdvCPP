@@ -9,30 +9,6 @@
 using namespace std;
 
 
-/*===========================================================================
- * HELPER FUNCTIONS
- *
- * These are used by the test suite.
- */
-
-string make_string(int num_chars) {
-    assert(num_chars > 0);
-
-    string s;
-
-    for (int i = 0; i < num_chars; i++)
-        s += (char) ('A' + rand() % 26);
-
-    return s;
-}
-
-string make_string(int min_chars, int max_chars) {
-    assert(min_chars > 0);
-    assert(max_chars >= min_chars);
-    return make_string(min_chars + (1 + max_chars - min_chars) % rand());
-}
-
-
 
 
 
@@ -227,52 +203,6 @@ void test_sort_ints(TestContext &ctx) {
 
     // Verify that the values look correct through the iterator.
     Vector<int>::iterator it = v.begin();
-
-    last_i = *it;
-    it++;
-
-    i = 1;
-
-    while (it != v.end()) {
-        ctx.CHECK(last_i <= *it);
-
-        last_i = *it;
-        it++;
-
-        i++;
-    }
-    ctx.CHECK(i == NUMVALS);
-
-    ctx.result();
-}
-
-
-void test_sort_strings(TestContext &ctx) {
-    const int NUMVALS = 10000;
-    int i;
-    string last_i;
-
-    ctx.DESC("std::sort() works with Vector<string>");
-
-    Vector<string> v;
-
-    // Insert random numbers
-    for (i = 0; i < NUMVALS; i++) {
-        v.push_back(make_string(4, 12));
-    }
-
-    // Sort it!
-    std::sort(v.begin(), v.end());
-
-    // Check the order
-    last_i = v[0];
-    for (i = 1; i < NUMVALS; i++) {
-        ctx.CHECK(last_i <= v[i]);
-        last_i = v[i];
-    }
-
-    // Verify that the values look correct through the iterator.
-    Vector<string>::iterator it = v.begin();
 
     last_i = *it;
     it++;
@@ -567,6 +497,45 @@ void test_insert_and_erase_with_pointers(TestContext &ctx) {
  * These should always pass after Lab 3
  */
 
+void test_bit_accesses(TestContext &ctx) {
+    ctx.DESC("[LAB 4+] testing: bit accessing, bit mutating");
+
+    size_t len_init = 3;
+
+    const bool bools[3 /*len_init*/] = {
+        false,
+        false,
+        false
+    };
+
+    Vector<bool> v;
+    for (size_t i = 0; i < len_init; i++)
+        v.push_back(bools[i]);
+
+    v[0] = true;
+    v[1] = !v[2];
+    v[2] = v.at(0);
+    ctx.CHECK(v[0] == true);
+    ctx.CHECK(v[1] == true);
+    ctx.CHECK(v[2] == true);
+
+    Vector<bool>::iterator it = v.begin();
+    ctx.CHECK(*it == true);
+    ctx.CHECK(it == v.begin());
+    ctx.CHECK(it != v.end());
+    ctx.CHECK(v.begin() <= v.end());
+
+    *it = false;
+    *(++it) = false;
+    it--;
+    *(it+2) = *it;
+    ctx.CHECK(v[0] == false);
+    ctx.CHECK(v[1] == false);
+    ctx.CHECK(v[2] == false);
+
+    ctx.result();
+}
+
 void test_size_manipulation_with_bools(TestContext &ctx) {
     ctx.DESC("[LAB 4+] testing: resize, clear, reserve, shrink_to_fit");
 
@@ -593,7 +562,6 @@ void test_size_manipulation_with_bools(TestContext &ctx) {
     }
 
     ctx.CHECK(v.size() == len_init);
-
     size_t expected_cap = len_init == 0 ? 0 : 1;
     size_t len_buffer = len_init;
     while (len_buffer != 0) {
@@ -640,14 +608,44 @@ void test_size_manipulation_with_bools(TestContext &ctx) {
 void test_insert_and_erase_with_bools(TestContext &ctx) {
     ctx.DESC("[LAB 4+] testing: insert and erase");
 
-    size_t sub_len = 10;
+    size_t sub_len = 40;
     size_t page_size = 32;
     size_t full_page_count = 0;
     size_t len = sub_len + page_size * full_page_count;
     bool insert_val = true;
-    size_t insert_offset = 5;
+    size_t insert_offset = 35;
 
-    const bool bools[10 /*sub_len*/] = {
+    const bool bools[40 /*sub_len*/] = {
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        true,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        true,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        true,
         true,
         false,
         true,
@@ -678,36 +676,26 @@ void test_insert_and_erase_with_bools(TestContext &ctx) {
         ctx.CHECK(v.at(i + 1) == bools[i % sub_len]);
     }
 
-    v.insert(v.begin() + insert_offset, insert_val);
-    ctx.CHECK(v.at(insert_offset) == insert_val);
-    ctx.CHECK(*(v.begin() + insert_offset) == insert_val);
-    ctx.CHECK(v.size() == len + 2);
+    v.erase(v.begin() + insert_offset);
+    ctx.CHECK(v.size() == len);
+
     ctx.CHECK(v.at(0) == insert_val);
     ctx.CHECK(*v.begin() == insert_val);
-    for (size_t i = 0; i < len; i++) {
-        ctx.CHECK(v.at(i + (i + 1 >= insert_offset ? 2 : 1))
-            == bools[i % sub_len]);
+    for (size_t i = 0; i < insert_offset; i++) {
+        ctx.CHECK(v.at(i + 1) == bools[i % sub_len]);
+    }
+    for (size_t i = insert_offset; i < sub_len; i++) {
+        ctx.CHECK(v.at(i) == bools[i % sub_len]);
     }
 
-    // v.erase(v.begin() + insert_offset);
-    // ctx.CHECK(v.size() == len + 1);
+    v.erase(v.begin() + insert_offset, v.end());
+    ctx.CHECK(v.size() == insert_offset);
 
-    // ctx.CHECK(v.at(0) == insert_val);
-    // ctx.CHECK(*v.begin() == insert_val);
-    // for (size_t i = 0; i < len; i++) {
-    //     printf("%d: %s vs %s\n", i + 1, v.at(i + 1) ? "TRUE" : "FALSE",
-    //         bools[i % sub_len] ? "TRUE" : "FALSE");
-    //     ctx.CHECK(v.at(i + 1) == bools[i % sub_len]);
-    // }
-
-    // v.erase(v.begin() + insert_offset, v.end());
-    // ctx.CHECK(v.size() == insert_offset);
-
-    // ctx.CHECK(v.at(0) == insert_val);
-    // ctx.CHECK(*v.begin() == insert_val);
-    // for (int i = 0; i < insert_offset - 1; i++) {
-    //     ctx.CHECK(v.at(i + 1) == bools[i]);
-    // }
+    ctx.CHECK(v.at(0) == insert_val);
+    ctx.CHECK(*v.begin() == insert_val);
+    for (int i = 0; i < insert_offset - 1; i++) {
+        ctx.CHECK(v.at(i + 1) == bools[i]);
+    }
 
     ctx.result();
 }
@@ -727,11 +715,11 @@ int main() {
     test_push_back(ctx);
     test_reverse(ctx);
     test_sort_ints(ctx);
-    // test_sort_strings(ctx);
     test_size_manipulation(ctx);
     test_insert_and_erase(ctx);
     test_size_manipulation_with_pointers(ctx);
     test_insert_and_erase_with_pointers(ctx);
+    test_bit_accesses(ctx);
     test_size_manipulation_with_bools(ctx);
     test_insert_and_erase_with_bools(ctx);
 

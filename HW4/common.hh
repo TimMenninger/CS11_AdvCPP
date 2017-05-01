@@ -43,8 +43,8 @@ static inline int smallestPow2(int n) {
 
  Returns:       (int) - Ceiling of the argument.
 */
-static inline int ceil(double n) {
-    return (int) n == n ? n : (int) n + 1;
-}
+// static inline int ceil(double n) {
+//     return (int) n == n ? n : (int) n + 1;
+// }
 
 #endif // ifndef COMMON

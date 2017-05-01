@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <string>
 #include <assert.h>
+#include <math.h>
 #include "common.hh"
 
 /******************************************************************************
@@ -91,8 +92,7 @@ public:
     int capacity() const { return cap; };
 
     /* Returns the element at the argued index. */
-    T& at(int i) { return arr[i]; };
-    const T& at(int i) const { return arr[i]; };
+    T at(int i) { return arr[i]; };
 
     /* Returns an iterator at the beginning of the array, pointing to the
        first element. */
@@ -222,7 +222,7 @@ public:
         /* Number of elements deleted to help shifting things left. */
         int numDeleted = (last - first);
         /* Don't erase if they're the same. */
-        if (numDeleted == 0)
+        if (numDeleted <= 0)
             return;
 
         /* Shift everything so that we erased the desired parts, and then the
@@ -391,10 +391,7 @@ public:
     int capacity() const { return Base::capacity(); };
 
     /* Returns the element at the argued index. */
-    T*& at(int i) { return reinterpret_cast<T*&>(Base::at(i)); };
-    const T*& at(int i) const {
-        return reinterpret_cast<const T*&>(Base::at(i));
-    };
+    T* at(int i) { return reinterpret_cast<T*>(Base::at(i)); };
 
     /* Returns an iterator at the beginning of the array, pointing to the
        first element. */
@@ -486,7 +483,11 @@ public:
 ******************************************************************************/
 template <>
 class Vector<bool> {
+
 private:
+    class Bit;              /* For accessing and mutating bits. */
+    class Iterator;         /* For iterating over bits. */
+
     Vector<uint32_t> arr;   /* Each element contains 32 bool values. */
     int len;                /* Number of bits in vector. */
     int cap;                /* Capacity of bits. */
@@ -503,8 +504,7 @@ private:
 
 public:
 
-    typedef VectorBase<uint32_t> Base;
-    typedef bool* iterator;
+    typedef Iterator iterator;
 
 
     /******************************
@@ -544,30 +544,22 @@ public:
     int size() const { return len; };
     int capacity() const { return cap; };
 
-    /* Returns the element at the argued index. */
-    // bool& at(int i) {
-    //     /* Ensure i is in range since the vector can't do it. */
-    //     if (i >= len)
-    //         throw std::out_of_range("Vector<bool>::at");
-    //
-    //     return (bool) (arr[i/32] & (1 << i%32));
-    // };
-    const bool& at(int i) const {
+    bool at(int i) const {
         /* Ensure i is in range since the vector can't do it. */
         if (i >= len)
             throw std::out_of_range("Vector<bool>::at");
 
         return (bool) (arr[i/32] & (1 << i%32));
     };
-//
-//     /* Returns an iterator at the beginning of the array, pointing to the
-//        first element. */
-//     iterator begin() { return (iterator) Base::begin(); };
-//
-//     /* Returns an iterator at the end of the array, just past the end */
-//     iterator end() { return (iterator) Base::end(); };
-//
-//
+
+    /* Returns an iterator at the beginning of the array, pointing to the
+       first element. */
+    iterator begin() { return Iterator(&arr, 0); };
+
+    /* Returns an iterator at the end of the array, just past the end */
+    iterator end() { return Iterator(&arr, len); };
+
+
     /******************************
      OPERATORS
      ******************************/
@@ -587,17 +579,12 @@ public:
         }
         return *this;
     };
-//
-//    /* Access an element in the array. */
-//    bool& operator[](int i) {
-//        return (bool) (arr[i/32] & (1 << i%32));
-//    };
-    const bool& operator[](int i) const {
-        /* Ensure i is in range since the vector can't do it. */
-        if (i >= len)
-            throw std::out_of_range("Vector<bool>::at");
 
-        return (bool) (arr[i/32] & (1 << i%32));
+    /* Mutate element in the array. */
+    Bit operator[](int i) {
+        if (i >= len)
+            throw std::out_of_range("Index out of range");
+        return Bit(&arr, i);
     };
 
 
@@ -623,25 +610,24 @@ public:
         cap = len;
 
         /* Remove unused values from the array. */
-        arr.erase(arr.begin() + ceil((double) cap/32), arr.end());
+        arr.erase(arr.begin() + (int) ceil((double) cap/32), arr.end());
     };
 
     /* Resizes the array.  This initializes anything that was previously within
        size but no longer is. */
     void resize(int count) {
-        /* Add to the array any 32-bit values we need (only enters if the size
-            increases). */
-        for (int i = arr.size(); i <= count/32; i++)
-            arr.push_back(0);
+        /* Remove any unneeded values in the uint32 array. */
+        arr.resize(ceil((double) count/32));
 
         /* Initialize everything that was previously in the array.  We do this
            by erasing entire 32-bit values where possible, then iterating over
            bits in the last one, clearing what is unused. */
-        arr.erase(arr.begin() + ceil((double) count/32), arr.end());
-        *arr.end() &= (-1 << (32 - (count%32));
+        if (count < len)
+            arr[arr.size()-1] &= ~(-1 << count%32);
 
         /* Update the size. */
         len = count;
+        cap = std::max(cap, count);
     };
 
     /* Clears the array, keeping the capacity the same but changing the length
@@ -652,7 +638,7 @@ public:
     void push_back(const bool& elem) {
         /* Make space if we need it. */
         while (len >= cap)
-            reserve(cap << 1);
+            reserve(std::max(1, cap << 1));
 
         /* Assign the bit accordingly and update the length. */
         arr[len/32] |= (elem << len%32);
@@ -663,35 +649,253 @@ public:
     void push_back(bool&& elem) {
         /* Make space if we need it. */
         while (len >= cap)
-            reserve(cap << 1);
+            reserve(std::max(1, cap << 1));
 
         /* Assign the bit accordingly and update the length. */
         arr[len/32] |= (elem << len%32);
         len++;
     };
 
-//     /* Inserts an element at the specified position, pushing everything else
-//        back. */
-//     void insert(iterator pos, const T* elem) {
-//         Base::insert((Base::iterator) pos, (void*) elem);
-//     };
-//
-//     /* Inserts an element at the specified position, pushing everything else
-//        back. */
-//     void insert(iterator pos, T*&& elem) {
-//         Base::insert((Base::iterator) pos, (void*) elem);
-//     };
-//
-//     /* Erases everything from the first point to the element before the last
-//        point. */
-//     void erase(iterator first, iterator last) {
-//         Base::erase((Base::iterator) first, (Base::iterator) last);
-//     };
-//
-//     /* Erases what is at the position argued. */
-//     void erase(iterator pos) {
-//         Base::erase((Base::iterator) pos, (Base::iterator) pos+1);
-//     };
+    /* Inserts an element at the specified position, pushing everything else
+       back. */
+    void insert(iterator pos, const bool elem) {
+        /* We might need more space for the new element. */
+        resize(len+1);
+
+        /* Insert the element and push everything else back. */
+        iterator it = end();
+        for (; it != pos; it--) {
+            *it = *(it-1);
+        }
+        *it = elem;
+    };
+
+    /* Erases everything from the first point to the element before the last
+       point. */
+    void erase(iterator first, iterator last) {
+        /* Number of elements deleted to help shifting things left. */
+        int numDeleted = (last - first);
+
+        /* Don't erase if they're the same. */
+        if (numDeleted <= 0)
+            return;
+
+        /* Shift everything so that we erased the desired parts, and then the
+           gibberish is on the end (which we will remove with a resize) */
+        while (first < end()-numDeleted) {
+            *first = *(first+numDeleted);
+            first++;
+        }
+
+        /* Resize according to how many we deleted. */
+        resize(len-numDeleted);
+    };
+
+    /* Erases what is at the position argued. */
+    void erase(iterator pos) {
+        erase(pos, pos+1);
+    };
+
+/***************************
+ HELPER CLASSES
+ **************************/
+private:
+
+    /* Because we can't return a reference to a single bit in a uint, we need
+       to make a special class that gives the appearance that we can... */
+    class Bit {
+
+        friend class Iterator;
+
+    private:
+
+        Vector<uint32_t> *v;/* The integer where we are mutating a bit. */
+        int idx;            /* The index of the bit being mutated. */
+
+    public:
+
+        /* Constructors */
+        Bit() : v(0), idx(0) {};
+        Bit(Vector<uint32_t> *v) : v(v), idx(0) {};
+        Bit(Vector<uint32_t> *v, int i) : v(v), idx(i) {};
+
+        /* Destructor */
+        ~Bit() {}; /* Vector freed by Vector class */
+
+        /* The index to use when setting the value. */
+        void setIndex(int i) { idx = i; };
+
+        /* Add to index. */
+        void addToIndex(int offset) { idx += offset; };
+
+        /* This is what eventually gets called on the [] operator in Vector. */
+        Bit operator=(const bool&& b) {
+            /* Set the i'th bit in the vector to the argued bool. */
+            (*v)[idx/32] &= ~(1 << (idx%32));
+            (*v)[idx/32] |= b << (idx%32);
+            return *this;
+        };
+
+        /* This is what eventually gets called on the [] operator in Vector. */
+        Bit operator=(const Bit& bit) {
+            /* Set the i'th bit in the vector to the argued bool. */
+            bool b = (bool) ((*bit.v)[bit.idx/32] & (1 << (bit.idx%32)));
+
+            /* Clear that bit then OR in the new one. */
+            (*v)[idx/32] &= ~(1 << (idx%32));
+            (*v)[idx/32] |= b << (idx%32);
+            return *this;
+        };
+
+        /* Need an operator that takes a regular boolean. */
+        Bit operator=(const bool& b) {
+            /* Set the i'th bit in the vector to the argued bool. */
+            (*v)[idx/32] &= ~(1 << (idx%32));
+            (*v)[idx/32] |= b << (idx%32);
+            return *this;
+        }
+
+        /* Compare two bits. */
+        const bool operator==(Bit& b) {
+            return ((*v)[idx/32] & (1 << idx%32)) ==
+                ((*b.v)[b.idx/32] & (1 << b.idx%32));
+        }
+        const bool operator!=(Bit& b) {
+            return ((*v)[idx/32] & (1 << idx%32)) !=
+                ((*b.v)[b.idx/32] & (1 << b.idx%32));
+        }
+
+        /* We define how to interpret Bit as a bool so when the Vector
+           is accessed through the [] operator, which returns Bit, we
+           can implicitly cast to this boolean value. */
+        const operator bool() {
+            /* For whatever reason, this only works if we store it before
+               returning. */
+            bool out = (*v)[idx/32] & (1 << idx%32);
+            return out;
+        };
+    };
+
+    /* A special class that allows us to "dereference" and iterate over bits
+       in an unsigned integer. */
+    class Iterator {
+
+    private:
+
+        Bit *bit;           /* Allows us to modify bits using the iterator. */
+
+    public:
+
+        /* Constructors */
+        Iterator() : bit(new Bit()) {};
+        Iterator(Vector<uint32_t> *v, int i) : bit(new Bit(v, i)) {};
+        Iterator(const Iterator& it) {
+            memcpy((void *) this, (void *) &it, sizeof(Iterator));
+            this->bit = new Bit();
+            memcpy((void *) this->bit, (void *) it.bit, sizeof(Bit));
+        };
+
+        /* Destructor */
+        ~Iterator() { if (bit) delete bit; };
+
+        /* Operators */
+        /* post increment */
+        const Iterator operator++(int) {
+            /* Store the original version that will be returned */
+            Iterator out(*this);
+            /* Increment the instance */
+            *this += 1;
+            return out;
+        };
+
+        /* pre increment */
+        Iterator& operator++() {
+            /* Add one then return */
+            *this += 1;
+            return *this;
+        };
+
+        /* post decrement */
+        const Iterator operator--(int) {
+            /* Store the original version that will be returned */
+            Iterator out(*this);
+            /* Decrement the instance */
+            *this -= 1;
+            return out;
+        };
+
+        /* pre decrement */
+        Iterator& operator--() {
+            /* Subtract one then return */
+            *this -= 1;
+            return *this;
+        };
+
+        /* Dereference for reading/writing */
+        Bit& operator* () { return *bit; };
+
+        /* Move assignment */
+        Iterator operator=(const Iterator&& it) {
+            /* Set the i'th bit in the vector to the argued bool. */
+            memcpy((void *) this, (void *) &it, sizeof(Iterator));
+            memset((void *) &it, 0, sizeof(Iterator));
+            return *this;
+        };
+
+        /* Copy assignment */
+        Iterator operator=(const Iterator& it) {
+            /* Set the i'th bit in the vector to the argued bool. */
+            *this = Iterator(it);
+            return *this;
+        };
+        bool operator>(const Iterator& it) {
+            return (bit->idx > it.bit->idx);
+        };
+        bool operator<(const Iterator& it) {
+            return (bit->idx < it.bit->idx);
+        };
+        bool operator>=(const Iterator& it) {
+            return (bit->idx >= it.bit->idx);
+        };
+        bool operator<=(const Iterator& it) {
+            return (bit->idx <= it.bit->idx);
+        };
+
+        /* Compare two iterators. */
+        const bool operator==(const Iterator& it) {
+            return (bit->v == it.bit->v) && (bit->idx == it.bit->idx);
+        };
+        const bool operator!=(const Iterator& it) {
+            return (bit->v != it.bit->v) || (bit->idx != it.bit->idx);
+        };
+
+        /* Pointer arithmetic with iterators */
+        Iterator operator-(const int& i) {
+            Iterator out(*this);
+            out.bit->addToIndex(-i);
+            return out;
+        };
+        const Iterator& operator-=(const int& i) {
+            bit->addToIndex(-i);
+            return *this;
+        };
+        Iterator operator+(const int& i) {
+            Iterator out = iterator(*this);
+            out.bit->addToIndex(i);
+            return out;
+        };
+        const Iterator& operator+=(const int& i) {
+            bit->addToIndex(i);
+            return *this;
+        };
+
+        /* This allows us to see the difference between two iterators */
+        int operator-(const Iterator& i) {
+            if (i.bit->v != bit->v)
+                return -1;
+            return bit->idx - i.bit->idx;
+        };
+    };
 };
 
 #endif // ifndef VECTOR
