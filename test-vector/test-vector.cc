@@ -236,8 +236,13 @@ void test_size_manipulation(TestContext &ctx) {
     size_t len_resize = 100;
     size_t len_reserve = 1000;
 
-    Vector<int> v = makeTestVector(len_init);
+    Vector<int> v(0, len_init);
+    ctx.CHECK(v.size() == 0);
+    ctx.CHECK(v.capacity() == len_init);
+    v.shrink_to_fit();
+    ctx.CHECK(v.capacity() == 0);
 
+    v = makeTestVector(len_init);
     ctx.CHECK(v.size() == len_init);
 
     size_t expected_cap = len_init == 0 ? 0 : 1;

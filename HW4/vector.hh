@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include <string>
 #include <assert.h>
-#include <math.h>
+#include <stdint.h>
 #include "common.hh"
 
 /******************************************************************************
@@ -34,6 +34,10 @@ private:
     /* Initializes the array pointer */
     void init() {
         arr = cap == 0 ? NULL : (T*) malloc(cap * sizeof(T));
+        if (cap != 0 and !arr) {
+            fprintf(stderr, "ran out of memory");
+            exit(1);
+        }
         for (int i = 0; i < cap; ++i)
             arr[i] = T();
     };
@@ -44,6 +48,10 @@ private:
         if (new_cap == 0 && arr) delete arr;
         /* Make space for new array size, copying over contents */
         arr = new_cap == 0 ? NULL : (T*) realloc(arr, new_cap * sizeof(T));
+        if (cap != 0 and !arr) {
+            fprintf(stderr, "ran out of memory");
+            exit(1);
+        }
         /* Initialize anything new */
         for (int i = cap; i < new_cap; ++i)
             arr[i] = T();
@@ -81,7 +89,10 @@ public:
      DESTRUCTOR
      ******************************/
 
-    ~VectorBase() { if (arr) delete arr; };
+    ~VectorBase() {
+        if (arr) delete arr;
+        arr = NULL;
+    };
 
 
     /******************************
@@ -116,6 +127,7 @@ public:
     /* Move assignment */
     VectorBase operator=(const VectorBase<T>&& v) {
         if (this != &v) {
+            if (arr) delete arr;
             memcpy((void *) this, (void *) &v, sizeof(VectorBase<T>&&));
             memset((void *) &v, 0, sizeof(VectorBase<T>&&));
         }
@@ -222,15 +234,13 @@ public:
         /* Number of elements deleted to help shifting things left. */
         int numDeleted = (last - first);
         /* Don't erase if they're the same. */
-        if (numDeleted <= 0)
+        if (numDeleted == 0)
             return;
 
         /* Shift everything so that we erased the desired parts, and then the
            gibberish is on the end (which we will remove with a resize) */
-        while (first < end()-numDeleted) {
-            *first = *(first+numDeleted);
-            first++;
-        }
+        while (first < end()-numDeleted)
+            *first++ = *last++;
 
         /* Resize according to how many we deleted. */
         resize(len-numDeleted);
@@ -300,7 +310,8 @@ public:
  This vector class implements the Vector class for exclusively void* types.
 
 ******************************************************************************/
-template <> class Vector<void*> : public VectorBase<void*> {
+template <>
+class Vector<void*> : public VectorBase<void*> {
 public:
 
     typedef VectorBase<void*> Base;
@@ -682,10 +693,8 @@ public:
 
         /* Shift everything so that we erased the desired parts, and then the
            gibberish is on the end (which we will remove with a resize) */
-        while (first < end()-numDeleted) {
-            *first = *(first+numDeleted);
-            first++;
-        }
+        while (first < end()-numDeleted)
+            *first++ = *last++;
 
         /* Resize according to how many we deleted. */
         resize(len-numDeleted);
@@ -800,7 +809,7 @@ private:
 
         /* Operators */
         /* post increment */
-        const Iterator operator++(int) {
+        Iterator operator++(int) {
             /* Store the original version that will be returned */
             Iterator out(*this);
             /* Increment the instance */
@@ -816,7 +825,7 @@ private:
         };
 
         /* post decrement */
-        const Iterator operator--(int) {
+        Iterator operator--(int) {
             /* Store the original version that will be returned */
             Iterator out(*this);
             /* Decrement the instance */

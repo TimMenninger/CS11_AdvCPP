@@ -1,0 +1,129 @@
+<h1>Lab 5: ncurses</h1>
+
+
+<h2>Prerequisites</h2>
+
+You will need to download ncurses.  If you are on linux, you should run
+<ul><code>sudo apt-get install libncurses5-dev libncursesw5-dev</code></ul>
+If you are using MacOSX, refer to <a href=https://gist.github.com/cnruby/960344>
+this</a> useful tutorial.  Good documentation for ncurses can be found
+<a href=http://invisible-island.net/ncurses/NCURSES-Programming-HOWTO.html>here</a>.
+
+
+<h2>Using ncurses</h2>
+
+This week we will primarily focus on getting a window up and running using
+ncurses.  Ncurses is the library we will use to create an interactive game
+(or anything else) in the terminal.  To use it, we will include
+<code>ncurses.h</code>.  Refer to the link in the Prerequisites section for
+documentation that will help you correctly use functions presented in this
+assignment.
+
+<h5>Screens</h5>
+To use ncurses, you must first create a screen, and set its environment
+appropriately for use.  One must initialize a screen with a call to the
+<code>initscr()</code> function.  This is what sets up the screen.  Then
+the rest is up to the implementer.  For now, we will want to make calls
+to <code>cbreak()</code> and <code>noecho()</code>, which tell ncurses
+to return character keystrokes as they are typed.  Furthermore, because
+we want to listen for keystrokes, we want to call <code>raw()</code> and
+<code>keypad(stdscr, TRUE)</code>.  To tell ncurses where to put a cursor
+if you want one at all, make a call to <code>curs_set()</code>.  When we
+are done using ncurses, you should call <code>endwin()</code>.
+
+<h5>Windows</h5>
+We break the screen into <code>WINDOW</code> objects.  To create one, we
+make a call to <code>newwin()</code>, which takes indicies of the corners
+of the window and returns a <code>WINDOW</code> pointer.  For the windows to
+become active, we must <code>refresh()</code> ncurses.  Note that to
+avoid memory leaks, we must also call <code>delwin()</code> when we are
+done using the window.  When choosing indices for the corners of the windows,
+it may be useful to use <code>LINES</code> and <code>COLS</code>, which
+are ncurses values storing the number of rows and columns, respectively,
+in the screen.
+
+<h5>Editing Windows</h5>
+Editing windows occurs by moving an imaginary cursor and then setting the
+character at that location.  To move a cursor to the location (x, y) in a
+window, we must call <code>wmove()</code>.  There are two things to note
+here: (x, y) is a coordinate inside a window, not a screen, so (0, 0) is
+not necessarily a corner of the screen; and the <code>wmove</code> function
+takes indices in row, column order (i.e. y then x).  After declaring the
+location with <code>wmove</code>, we make a call to <code>waddch</code>,
+which tells ncurses what character to put at said location.  For changes to
+appear, you must refresh the window with a call to <code>wrefresh()</code>.
+To receive keyboard input, you should use <code>getch()</code>.  Be careful
+when using this as it blocks until a keystroke is detected.
+
+
+<h2>File Structure</h2>
+
+The supplied Makefile expects a particular file structure which is pretty
+standard in object-oriented programming.  For this, we will separate files
+by their respective purpose.  The four types of files you will use in this
+assignment are source files, object files, binary files and data files.
+Source files are any file that contains code used in your implementation,
+and is typically contained in a folder called <code>src</code>.  Object files
+are intermediary files created during compilation.  We put these in a
+separate folder called <code>obj</code> so they don't clutter our directories.
+Binary files are the final, compiled executable.  Typically, there is only
+one binary file in a project, and it is stored in the <code>bin</code>
+directory.  Finally, sometimes there are files that contain input data to your
+program.  It isn't uncommon that there are large numbers of data files, so
+we store them in a directory called <code>data</code>.  Sometimes also data
+files individually are extremely large, which makes it undesirable to move
+them more than necessary.  Having them all in one directory makes it easy
+to ignore them in various contexts (e.g. in .gitignore).  You should follow
+this structure, keeping the Makefile at the top directory, when doing your
+project.
+
+
+<h2>Assignment</h2>
+
+For this lab, you will first create three classes: <code>Map</code>,
+<code>Display</code> and <code>Game</code>.  Name your files as you wish, but
+ensure that your Makefile is consistent with your nomenclature.  When
+implementing your classes, make all members private, exposing public accessor
+and mutator functions.  This week, let's start putting class implementations
+in <code>.cpp</code> files and class declarations in <code>.hpp</code> files.
+
+<h5>Map Class</h5>
+Your map object must contain the map and metadata about the map (such as
+height and width).  The map should be stored in a vector (or vector of
+vectors).  It might save you time later to create a datatype for each cell in
+your map, even if it is a simple <code>typedef char Cell</code> for now.  This
+class is responsible for reading a datafile containing a map and storing it
+in your map vector.  You can create <code>static const</code> values in your
+map class to define the constant dimensions of your map, which should be 24
+rows and 80 columns.  This should not use ncurses and should have no friend
+classes.
+
+<h5>Display Class</h5>
+Your display object is responsible for ncurses.  You will have two windows,
+one on top of the other.  One will contain the map and the other will display
+keys pressed.  Showing keys pressed doesn't need to be fancy or even wrap
+lines.  This part is purely to acclimate yourself with <code>getch()</code>
+and ncurses.  While the design is entirely up to you, you might consider a
+<code>putChar(WINDOW*, x, y, char)</code> method that draws a character at
+specified indices in the specified window.  Additionally, a
+<code>drawMap(Map)</code> function that uses an instance of the map class to
+draw the map in the map window.
+
+<h5>Game Class</h5>
+Your game class just needs the map object and display object the game is
+using.  It should expose a <code>void run()</code> function that will run the
+game.  This week, running the game is simply listening for keystrokes and
+displaying them in the appropriate window.  It will also listen for the
+ESCAPE key, which will cause <code>run()</code> to return and the game to
+end.  Note that <code>getch()</code> will return <code>27</code> when the
+ESCAPE key is detected.
+
+<h5>main.cpp</h5>
+Your main loop will check that the function was invoked with exactly one
+argument (which should be a filename leading to the map to load), create a
+game instance, then run the game.
+
+
+<h2>Submission</h2>
+Submit only your source files and your Makefile.  If there are more files to
+submit than openings on csman, email the TA.

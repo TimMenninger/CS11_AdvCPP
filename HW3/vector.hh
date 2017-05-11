@@ -32,7 +32,15 @@ private:
 
     /* Initializes the array pointer */
     void init() {
+        /* If the size is greater than the capacity, make them equal so
+           we don't seg fault anywhere. */
+        cap = std::max(len, cap);
+        /* Set up the array according to capacity. */
         arr = cap == 0 ? NULL : (T*) malloc(cap * sizeof(T));
+        if (cap != 0 and !arr) {
+            fprintf(stderr, "ran out of memory");
+            exit(1);
+        }
         for (int i = 0; i < cap; ++i)
             arr[i] = T();
     };
@@ -43,6 +51,10 @@ private:
         if (new_cap == 0 && arr) delete arr;
         /* Make space for new array size, copying over contents */
         arr = new_cap == 0 ? NULL : (T*) realloc(arr, new_cap * sizeof(T));
+        if (new_cap != 0 and !arr) {
+            fprintf(stderr, "ran out of memory");
+            exit(1);
+        }
         /* Initialize anything new */
         for (int i = cap; i < new_cap; ++i)
             arr[i] = T();
@@ -80,7 +92,10 @@ public:
      DESTRUCTOR
      ******************************/
 
-    ~VectorBase() { if (arr) delete arr; };
+    ~VectorBase() {
+        if (arr) delete arr;
+        arr = NULL;
+    };
 
 
     /******************************
@@ -115,6 +130,7 @@ public:
     /* Move assignment */
     VectorBase operator=(const VectorBase<T>&& v) {
         if (this != &v) {
+            if (arr) delete arr;
             memcpy((void *) this, (void *) &v, sizeof(VectorBase<T>&&));
             memset((void *) &v, 0, sizeof(VectorBase<T>&&));
         }
@@ -226,10 +242,8 @@ public:
 
         /* Shift everything so that we erased the desired parts, and then the
            gibberish is on the end (which we will remove with a resize) */
-        while (first < end()-numDeleted) {
-            *first = *(first+numDeleted);
-            first++;
-        }
+        while (first < end()-numDeleted)
+            *first++ = *last++;
 
         /* Resize according to how many we deleted. */
         resize(len-numDeleted);
@@ -259,37 +273,7 @@ public:
     /******************************
      CONSTRUCTORS
      ******************************/
-
-    Vector() : Base::VectorBase() {};
-    Vector(int size) : Base::VectorBase(size) {};
-    Vector(int size, int cap) : Base::VectorBase(size, cap) {};
-
-    /* Copy constructor */
-    Vector(const Vector<T>& v) : Base::VectorBase(v) {};
-
-    /* Move constructor */
-    Vector(Vector<T>&& v) : Base::VectorBase(v) {};
-
-
-    /******************************
-     OPERATORS
-     ******************************/
-
-    /* Copy assignment */
-    Vector operator=(const Vector<T>& v) {
-        if (this != &v)
-            *this = Vector(v);
-        return *this;
-    };
-
-    /* Move assignment */
-    Vector operator=(const Vector<T>&& v) {
-        if (this != &v) {
-            memcpy((void *) this, (void *) &v, sizeof(Vector<T>&&));
-            memset((void *) &v, 0, sizeof(Vector<T>&&));
-        }
-        return *this;
-    };
+    Vector(int size = 0, int cap = 0) : Base::VectorBase(size, cap) {};
 };
 
 /******************************************************************************
@@ -299,7 +283,8 @@ public:
  This vector class implements the Vector class for exclusively void* types.
 
 ******************************************************************************/
-template <> class Vector<void*> : public VectorBase<void*> {
+template <>
+class Vector<void*> : public VectorBase<void*> {
 public:
 
     typedef VectorBase<void*> Base;
@@ -308,37 +293,7 @@ public:
     /******************************
      CONSTRUCTORS
      ******************************/
-
-    Vector() : Base::VectorBase() {};
-    Vector(int size) : Base::VectorBase(size) {};
-    Vector(int size, int cap) : Base::VectorBase(size, cap) {};
-
-    /* Copy constructor */
-    Vector(const Vector<void*>& v) : Base::VectorBase(v) {};
-
-    /* Move constructor */
-    Vector(Vector<void*>&& v) : Base::VectorBase(v) {};
-
-
-    /******************************
-     OPERATORS
-     ******************************/
-
-    /* Copy assignment */
-    Vector operator=(const Vector<void*>& v) {
-        if (this != &v)
-            *this = Vector(v);
-        return *this;
-    };
-
-    /* Move assignment */
-    Vector operator=(const Vector<void*>&& v) {
-        if (this != &v) {
-            memcpy((void *) this, (void *) &v, sizeof(Vector<void*>&&));
-            memset((void *) &v, 0, sizeof(Vector<void*>&&));
-        }
-        return *this;
-    };
+    Vector(int size = 0, int cap = 0) : Base::VectorBase(size, cap) {};
 };
 
 /******************************************************************************

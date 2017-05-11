@@ -1,5 +1,5 @@
-test1 = 11,084 bytes
-test2 = 11,612 bytes
-test3 = 11,956 bytes
+test1 = 11,224 bytes
+test2 = 11,744 bytes
+test3 = 12,096 bytes
 
-Vector ~= 0.5K
+Vector ~= 0.4K

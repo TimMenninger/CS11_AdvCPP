@@ -25,6 +25,10 @@ private:
     /* Initializes the array pointer */
     void init() {
         arr = cap == 0 ? NULL : (T*) malloc(cap * sizeof(T));
+        if (cap != 0 and !arr) {
+            fprintf(stderr, "out of memory");
+            exit(1);
+        }
         for (int i = 0; i < cap; ++i)
             arr[i] = T();
     };
@@ -35,6 +39,10 @@ private:
         if (new_cap == 0 && arr) delete (arr);
         /* Make space for new array size, copying over contents */
         arr = new_cap == 0 ? NULL : (T*) realloc(arr, new_cap * sizeof(T));
+        if (new_cap != 0 and !arr) {
+            fprintf(stderr, "out of memory");
+            exit(1);
+        }
         /* Initialize anything new */
         for (int i = cap; i < new_cap; ++i)
             arr[i] = T();
@@ -72,7 +80,10 @@ public:
      DESTRUCTOR
      ******************************/
 
-    ~Vector() { if (arr) delete arr; };
+    ~Vector() {
+        if (arr) delete arr;
+        arr = NULL;
+    };
 
 
     /******************************
@@ -83,7 +94,7 @@ public:
     int capacity() { return cap; }
 
     /* Returns the element at the argued index. */
-    T at(int i) { return arr[i]; }
+    const T& at(int i) const { return arr[i]; }
 
     /* Returns an iterator at the beginning of the array, pointing to the
        first element. */
@@ -218,10 +229,8 @@ public:
 
         /* Shift everything so that we erased the desired parts, and then the
            gibberish is on the end (which we will remove with a resize) */
-        while (first < end()-numDeleted) {
-            *first = *(first+numDeleted);
-            first++;
-        }
+        while (first < end()-numDeleted)
+            *first++ = *last++;
 
         /* Resize according to how many we deleted. */
         resize(len-numDeleted);

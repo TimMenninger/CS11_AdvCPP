@@ -116,22 +116,20 @@ int Rational::num() {
  OPERATORS
  ******************************/
 /*
- unary not
+ unary negation
 
- Returns the unary not of this Rational instance by returning ~numerator /
- ~denominator
+ Returns the unary negation of this Rational instance by returning -1 *
+ numerator / denominator
 
  Arguments:     None.
 
- Returns:       (Rational) - Unary not of this Rational instance.
+ Returns:       (Rational) - Unary negation of this Rational instance.
 
  Global Impact: None.
 */
-const Rational Rational::operator~() {
-    // Do unary not for numerator and denominator
-    int n = ~m_num;
-    int d = ~m_denom;
-    return Rational(n, d);
+const Rational Rational::operator-() {
+    // Do unary negation for numerator and denominator
+    return Rational(-1 * m_num, m_denom);
 }
 
 /*

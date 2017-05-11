@@ -58,7 +58,7 @@ public:
     /******************************
      OPERATORS
      ******************************/
-    const Rational operator~();                   // Unary not
+    const Rational operator-();                   // Unary negation
     const Rational operator+(const Rational& r);  // Add
     const Rational operator-(const Rational& r);  // Subtract
     const Rational operator/(const Rational& r);  // Divide
