@@ -13,8 +13,8 @@ private:
     /********************
     MEMBERS
     ********************/
-    static const unsigned int _width  = 80; /* Width of map */
-    static const unsigned int _height = 24; /* Height of map */
+    static const unsigned int _width  = 84; /* Width of map */
+    static const unsigned int _height = 33; /* Height of map */
     Cell **_cells;                          /* The cells in the map */
 
     /********************

@@ -1,5 +1,5 @@
 #include "map.hpp"
-#include <iostream>
+
 /*
  readFromFile (private)
 
