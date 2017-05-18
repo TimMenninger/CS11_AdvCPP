@@ -1,0 +1,72 @@
+<h1>Lab 7: Polymorphism</h1>
+
+
+<h2>References</h2>
+<a href=http://www.cplusplus.com/doc/tutorial/polymorphism/>C++ Documentation</a>
+
+<h2>Virtual Functions</h2>
+
+We will begin to move toward our final product: a Pacman game.  Our final
+game will have one base <code>Character</code> class that all of our
+characters (Pacman and the ghosts) will inherit from.  To do this, we want
+to generalize as much as possible.  What information and capabilities must
+every character expose to our game class?  Of this, what is common among all
+characters, and what differs?  Anything that must be present, but whose
+implementation depends on the character "type", we must create a
+<code>virtual</code> function for, which means that the implementation is
+expected to be reimplemented by anyone who inherits it.
+
+
+<h2>Assignment</h2>
+
+Next, you will create a <code>Character</code> class from which everything will
+inherit.  This class must define anything and everything that other classes
+might need to properly "control" the characters.  Such things might include
+coordinates of the character in the map and accessor functions for these.  The
+coordinates will be common among all characters and thus do not need to be
+implemented by inheriters.  Additionally, a <code>virtual nextMove()</code>
+method that decides how the character will move next (Pacman is
+user-controlled, and the ghosts each have their own rules).  There should be
+methods like <code>virtual onStart()</code> and <code>virtual onDeath()</code>
+that define initial state and how to handle its own death.  There might be a
+flag that keeps track of whether Pacman is in power-up mode or not.  Anything
+else that is appropriate you should include.  It may be useful for the
+characters to have access to the map and game they are in.  There must be a
+<code>virtual run()</code> function that, when called, will enter an infinite
+loop that controls the character.  Then, you will create an
+instance of every character: Pacman, Inky, Blinky, Pinky and Clyde (for
+how to implement each of them, refer to their descriptions below).  In
+doing this, you will begin to notice that other classes need additions.  For
+example, you may want to add <code>bool isWall()</code> to your
+<code>Map</code> class to help <code>nextMove()</code> determine how to
+continue moving, and a functionality in <code>Game</code> so that each
+character knows if the game is still running.  This way, their <code>run</code>
+methods will know when to stop looping.  When implementing, continue with using
+only smart pointers.  In the end, you should have all of the ghosts and Pacman
+independently working.  DO NOT TRY TO GET THEM ALL TO WORK TOGETHER!  We will
+finish in the next assignment.  To demonstrate ghosts' functionality, you can
+assume Pacman is in the top left corner of the map, and call a <code>run</code>
+function in <code>Game::run()</code> to show that ghosts move as expected (or
+randomly if applicable).  You will not be able to fully demonstrate Pacman's
+functionality because it uses <code>getch()</code>, which is a blocking
+function.  For this, simply let the user choose each next location manually.
+In addition to these classes, you should add to your <code>Game</code> class
+metadata about the game such as number of lives and score, which updates
+when necessary.
+
+<h4>Characters</h4>
+<ul>
+    <li>Pacman - Should respond to the characters, j, k, l, i, respectively as
+    left, down, right, up.  Pacman should know his direction and continue
+    moving in that direction until either he changes direction, or he hits a
+    wall, in which case he stops, continuing to face the wall.</li>
+    <li>Inky - </li>
+    <li>Blinky - </li>
+    <li>Pinky - </li>
+    <li>Clyde - </li>
+</ul>
+
+
+<h2>Submission</h2>
+Submit only your source files and your Makefile.  If there are more files to
+submit than openings on csman, email a .tar file to the TA.

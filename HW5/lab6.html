@@ -1,0 +1,89 @@
+<h1>Lab 6: Smart Pointers</h1>
+
+
+<h2>References</h2>
+
+Here are some references to read up on smart pointers.
+<ul><a href=https://msdn.microsoft.com/en-us/library/hh279674.aspx>
+    Microsoft documentation about smart std pointers
+</a></ul>
+<ul><a href=http://stackoverflow.com/questions/7657718/when-to-use-shared-ptr-and-when-to-use-raw-pointers>
+    When to use unique_ptr and shared_ptr
+</a></ul>
+<ul><a href=http://www.geeksforgeeks.org/smart-pointers-cpp/>
+    Example of smart pointer class implementation
+</a></ul>
+
+
+<h2>Using Smart Pointers</h2>
+
+This week we will learn about smart pointers, using them as we build onto the
+ncurses assignment from last week.  The two main purposes of smart
+pointers are to make heap memory management more intuitive by eliminating
+the need to free pointers; and to establish ownership of pointers.  There are
+two types of smart pointers that we will work with in this assignment:
+<code>std::unique_ptr&lt;T&gt;</code> and
+<code>std::shared_ptr&lt;T&gt;</code>.  To use these, you must
+<code>#include &lt;memory&gt;</code>.
+
+<h4><code>std::unique_ptr&lt;T&gt;</code></h4>
+We use <code>std::unique_ptr</code> when there is exactly one owner of the
+pointer, hence "unique".  The compiler will prevent any transfer of ownership
+or copying of any unique pointers.  Thus, you cannot use pass
+<code>std::unique_ptr</code>'s as arguments to functions.  The way a
+<code>std::unique_ptr</code> is implemented is with a simple constructor and
+destructor such that when the program leaves the scope in which it is
+declared, the memory will be freed.
+
+<h4><code>std::shared_ptr&lt;T&gt;</code></h4>
+When using a pointer that is used across multiple scopes, we will want to use
+<code>std::shared_ptr</code>'s.  Any situation in which more than one variable
+points to the same object, we will want a <code>std::shared_ptr</code>.  Of
+the cases that require these are those in which pointers are passed to newer
+scopes, such as function arguments which copy the pointer.  The way these
+are implemented is with a reference counter.  Each time a pointer is copied,
+the reference increments; when it is destroyed, the reference count
+decrements.  When the reference count reaches zero, the pointer is freed.
+
+
+<h2>Creating Smart Pointer Classes</h2>
+
+In this assignment, we will want to create our own smart pointer class at
+least once (for <code>WINDOW*</code>).  Because freeing a <code>WINDOW*</code>
+requires a call to <code>ncurses</code>'s <code>delwin</code>, we will need
+to create our own smart pointer for it.  In the references section is a link
+showing a primitive example implementing a smart pointer class.  To do this,
+however, we will want to emulate more of a shared pointer, which means that
+we need to implement a reference counter.  This is simple: keep a pointer to
+an <code>int</code> that is our reference counter, in addition to a pointer
+to the <code>WINDOW</code> pointer itself.  Then, in copy constructors
+and assignments, we increment that counter, and in the destructor, we
+decrement it.  Finally, if the decremented counter is zero, we delete the
+counter and call <code>delwin()</code>.  Keep in mind that this class must
+support all pointer operationss so that the smart pointer can be interacted
+with as any raw pointer would.  One way this can be done is to implement
+implicit typecasting to <code>WINDOW*</code>.  This is also useful because
+it will allow you to use it as an argument to ncurses functions that expect
+a raw pointer.
+
+
+<h2>Assignment</h2>
+
+For this lab, you will first update lab 5 to use smart pointers.  For this,
+use <code>std::unique_ptr</code> where possible, <code>std::shared_ptr</code>
+otherwise.  You will also need to write a <code>WindowSPtr</code> class which
+is a shared pointer implementation for <code>WINDOW</code>.  If you feel that
+you will also require a unique pointer implementation, you should also write
+a <code>WindowUPtr</code>, whose code will essentially be a strict subset of
+that of the shared pointer's.  We are also supplying you with a Pacman map.
+Update your <code>Map</code> and <code>Display</code> classes accordingly.
+First and foremost, this will likely require updating the map height and width
+to 33 and 84, respectively, unless you decide your height based on the map
+file.  Then, update cell to contain metadata, which will mainly contain what
+the cell contains (dot, powerup, wall, etc.).  The supplied map was made such
+that every three characters together constitute one cell.
+
+
+<h2>Submission</h2>
+Submit only your source files and your Makefile.  If there are more files to
+submit than openings on csman, email a .tar file to the TA.

@@ -1,0 +1,105 @@
+<h1>Lab 8: Threading</h1>
+
+
+<h2>References</h2>
+<ul><a href=http://en.cppreference.com/w/cpp/thread>Thread</a></ul>
+<ul><a href=http://en.cppreference.com/w/cpp/thread/unique_lock>Locks</a></ul>
+<ul><a href=http://en.cppreference.com/w/cpp/thread/shared_mutex>Read/Write Locks</a></ul>
+
+
+<h2>Threading</h2>
+This week, we will take everything we have and make it all work together
+using threads.  Threading occurs in two steps: we <code>create</code> the
+thread using a function pointer and arguments, and we <code>join</code>
+the threads, which prevents the program from continuing until all threads
+have terminated.  This part is relatively straightforward.  The tricky part
+is ensuring that none of the threads get in another's way.  To use threads,
+we will use <code>std::thread</code>, which will require that we
+<code>#include &lt;thread&gt;</code>.
+
+
+<h2>Shared Resources</h2>
+When threading, you must be EXTREMELY conscientious of memory that is accessed
+by more than one thread.  One way to do this is with locks (also known as
+mutexes).  These work as a resource that a thread must "own" before reading
+or writing.  Only one thread can "own" it at any one time.  Thus, if a thread
+owns the lock and is writing to the shared resource, then no other thread
+can be writing because it does own the lock.  The two main operations we
+can do with a lock are acquire and release.  In our program, we will use
+blocking locks, which means acquire will not return until it has the lock.
+This is very susceptible to deadlocking, so we will have to be careful in our
+implementation.  This same construct is also used before reading shared
+resources because we don't want one thread to read a value, another to change
+it, then the original to respond to the original, now wrong, value.  This
+might seem inefficient because it allows only one thread to read a shared
+resource at any one time.  The solution to this is a read-write lock.  The
+difference here is when trying to acquire the lock, you declare whether it is
+to read or write.  The way these work is the lock keeps track of how many
+threads are reading at all times and uses this count to determine whether it
+should provide access to the resource.  Each time a new thread wants to acquire
+to read, the count increments.  When it releases from reading, the count
+decrements.  When a thread wants to acqurie to write, it will block until no
+other thread is accessing the resource, both readers and writers.  In any case,
+acquire will always block until nobody is writing.  There is one particularly
+interesting use case:
+<pre class="prettyprint code">
+    if (we want to write to shared resource) {
+        acquire write lock
+        do the write
+        release write lock
+    }
+</pre>
+This naive solution for such a case will not work.  The first issue is that
+we must presumably read the shared resource to check the <code>if</code>
+condition.  One possible solution is to move the write lock acquisition to
+outside the <code>if</code>.  While this works, it's slow because it must
+wait until nobody is reading before checking.  Furthermore, it forces any other
+threads wanting to read to wait until it is done.  In the end, it may not even
+do a write.  Therefore, we will want to acquire a read lock before the if
+statement.  Now, the issue is when the condition evaluates to true.
+We can't acquire the write lock before releasing the read lock, because
+that will deadlock as the write acquire waits for the read release that doesn't
+occur until after the if.  Likewise, it can't release the read lock, acquire
+the write lock, then write because in between the release and acquire, the
+resource may change such that we no longer want to write.  The fastest solution
+to such a scenario, which seems inefficient, is to do the same check twice.
+For example:
+<pre class="prettyprint code">
+    acquire read lock
+    if (we want to write to shared resource) {
+        release read lock
+        acquire write lock
+        if (we want to write to shared resource) {
+            do the write
+        }
+        release write lock
+    }
+    release read lock
+</pre>
+To use read/write locks, we will use <code>std::shared_mutex</code>, which
+will require that we <code>#include &lt;shared_mutex&gt;</code>.  This
+particular object uses the nomenclature <code>lock()</code> to acquire the
+lock to write, <code>lock_shared()</code> to acqurie the lock to read,
+<code>unlock()</code> to release the lock after writing, and
+<code>unlock_shared()</code> to release the lock after reading.  Note that
+there also exist <code>try_lock()</code> and <code>try_lock_shared()</code>
+which return <code>true</code> if and only if it acquires the lock, and do NOT
+block if lock acquisition fails.
+
+
+<h2>Assignment</h2>
+Your assignment is essentially to finish Pacman.  Ideally, you have written
+>90% of what you need.  All that will be added are locks for shared resources
+and the spawning of threads.  For this, there should be seven threads: one
+for each character, each calling the respective <code>run</code> function;
+one spawned by Pacman that simply calls <code>getch()</code> and reports back
+to Pacman the next buttonpress (because <code>getch()</code> blocks), and the
+thread that spawns all of the characters, which also handles the game state
+and should have some form of communication with the characters so it knows
+how to update the game state.  In the spirit of drilling smart pointers into
+you, continue using exclusively smart pointers where applicable.
+
+
+<h2>Submission</h2>
+Submit only your source files and your Makefile.  If there are more files to
+submit than openings on csman, email a .tar file to the TA.
