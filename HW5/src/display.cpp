@@ -1,4 +1,5 @@
 #include "display.hpp"
+#include <iostream>
 
 /*
  Display
@@ -9,7 +10,7 @@
 
  Returns:   None.
 */
-Display::Display(Map *map) {
+Display::Display(std::shared_ptr<Map> map) {
     /* Initialize the screen */
     initscr();
 
@@ -23,11 +24,11 @@ Display::Display(Map *map) {
 
     /* No cursor */
     curs_set(0);
-
     /* Create windows */
-    _mapWindow = newwin(map->getHeight(), map->getWidth(), 0, 0);
-    _textWindow = newwin(LINES - map->getHeight(), map->getWidth(),
-                         map->getHeight(), 0);
+    _mapWindow = WindowSPtr(newwin(map->getHeight(), map->getWidth(),
+                         LINES - map->getHeight(), 0));
+    _textWindow = WindowSPtr(newwin(LINES - map->getHeight(), map->getWidth(),
+                         0, 0));
 
     /* Refresh the entire thing to apply changes. */
     refresh();
@@ -46,12 +47,9 @@ Display::Display(Map *map) {
  Returns:   None.
 */
 Display::~Display() {
-    /* Delete windows */
-    delwin(_mapWindow);
-    delwin(_textWindow);
-
     /* End the session */
     endwin();
+    delwin(_textWindow);
 }
 
 /*
@@ -67,10 +65,10 @@ Display::~Display() {
 
  Returns:   None.
 */
-void Display::putChar(WINDOW *win, unsigned int x, unsigned int y, char c) {
+void Display::putChar(WindowSPtr w, unsigned int x, unsigned int y, char c) {
     /* Move the window curser then place the character */
-    wmove(win, y, x);
-    waddch(win, c);
+    wmove(w, y, x);
+    waddch(w, c);
 }
 
 /*
@@ -101,11 +99,13 @@ void Display::putTextChar(unsigned int x, unsigned int y, char c) {
 
  Returns:   None.
 */
-void Display::drawMap(Map* map) {
+void Display::drawMap(std::shared_ptr<Map> map) {
     /* Draw every character from the map. */
     for (int row = 0; row < map->getHeight(); row++) {
         for (int col = 0; col < map->getWidth(); col++) {
-            putChar(_mapWindow, col, row, map->getCell(col, row));
+            for (int i = 0; i < CELL_SIZE; i++) {
+                putChar(_mapWindow, col, row, map->getCell(col, row).raw[i]);
+            }
         }
     }
 

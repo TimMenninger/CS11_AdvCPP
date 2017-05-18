@@ -4,9 +4,30 @@
 #include <vector>
 #include <assert.h>
 #include <fstream>
+#include <memory>
+
+/* The number of characters in a cell */
+#define CELL_SIZE       3
 
 /* This is what the map contains in each cell. */
-typedef char Cell;
+struct Cell;
+typedef std::unique_ptr<Cell[]> CellRow;
+typedef std::unique_ptr<CellRow[]> CellArray;
+
+enum CellType {
+    EMPTY,              /* Contains nothing */
+    DOT,                /* Contains an uneaten dot */
+    NODOT,              /* Contained a dot that has been eaten */
+    POWERUP,            /* Contains an uneaten powerup */
+    NOPOWERUP,          /* Contained a powerup tha has been eaten */
+    WALL,               /* Contains a wall */
+    DOOR,               /* Door to the ghost prison */
+};
+
+struct Cell {
+    char raw[CELL_SIZE];/* Raw characters the cell is comprised of */
+    CellType type;      /* The type of cell */
+};
 
 class Map {
 private:
@@ -15,12 +36,13 @@ private:
     ********************/
     static const unsigned int _width  = 84; /* Width of map */
     static const unsigned int _height = 33; /* Height of map */
-    Cell **_cells;                          /* The cells in the map */
+    CellArray _cells;
 
     /********************
     PRIVATE FUNCTIONS
     ********************/
     void readFromFile(const char *filename);/* Reads map from argued file */
+    CellType decideCellType(char *cell);    /* Gets type of argued cell */
 
 public:
     /********************

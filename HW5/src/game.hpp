@@ -7,8 +7,8 @@
 
 class Game {
 private:
-    Map *_map;      /* The game map */
-    Display *_disp; /* The dipslay */
+    std::shared_ptr<Map> _map;      /* The game map */
+    std::unique_ptr<Display> _disp; /* The dipslay */
 
 public:
     /********************

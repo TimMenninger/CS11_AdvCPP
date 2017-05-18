@@ -11,8 +11,8 @@
 */
 Game::Game(const char *filename) {
     assert(filename);
-    _map = new Map(filename);
-    _disp = new Display(_map);
+    _map = std::shared_ptr<Map>(new Map(filename));
+    _disp = std::unique_ptr<Display>(new Display(_map));
 }
 
 /*
@@ -25,8 +25,7 @@ Game::Game(const char *filename) {
  Returns:   None.
 */
 Game::~Game() {
-    if (_map) delete _map;
-    if (_disp) delete _disp;
+    /* Nothing to delete when using smart pointers */
 }
 
 /*
