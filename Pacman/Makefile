@@ -16,7 +16,7 @@ RUN_GAME_DEP +=	$(OBJ_DIR)/display.o
 RUN_GAME_DEP +=	$(OBJ_DIR)/map.o
 RUN_GAME_DEP +=	$(OBJ_DIR)/main.o
 
-RUN_GAME_EXE =	$(BIN_DIR)/mud
+RUN_GAME_EXE =	$(BIN_DIR)/pacman
 
 
 TARGETS = $(RUN_GAME_EXE)

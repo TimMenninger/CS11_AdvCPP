@@ -21,6 +21,8 @@ enum CellType {
     POWERUP,            /* Contains an uneaten powerup */
     NOPOWERUP,          /* Contained a powerup tha has been eaten */
     WALL,               /* Contains a wall */
+    PORT_R,             /* Port on right side of map, leads to left */
+    PORT_L,             /* Port on left side of map, leads to right */
     DOOR,               /* Door to the ghost prison */
 };
 

@@ -1,0 +1,144 @@
+<h1>Lab 7: Polymorphism</h1>
+
+
+<h2>References</h2>
+<a href=http://www.cplusplus.com/doc/tutorial/polymorphism/>C++ Documentation</a>
+<a href=http://gameinternals.com/post/2072558330/understanding-pac-man-ghost-behavior>
+    Ghost Behavior
+</a>
+
+<h2>Virtual Functions</h2>
+
+We will begin to move toward our final product: a Pacman game.  Our final
+game will have one base <code>Character</code> class that all of our
+characters (Pacman and the ghosts) will inherit from.  To do this, we want
+to generalize as much as possible.  What information and capabilities must
+every character expose to our game class?  Of this, what is common among all
+characters, and what differs?  Anything that must be present, but whose
+implementation depends on the character "type", we must create a
+<code>virtual</code> function for, which means that the implementation is
+expected to be reimplemented by anyone who inherits it.
+
+
+<h2>Assignment</h2>
+
+Next, you will create a <code>Character</code> class from which everything will
+inherit.  This class must define anything and everything that other classes
+might need to properly "control" the characters.  Such things might include
+coordinates of the character in the map and accessor functions for these.  The
+coordinates will be common among all characters and thus do not need to be
+implemented by inheriters.  Additionally, a <code>virtual nextMove()</code>
+method that decides how the character will move next (Pacman is
+user-controlled, and the ghosts each have their own rules).  There should be
+methods like <code>virtual onStart()</code> and <code>virtual onDeath()</code>
+that define initial state and how to handle its own death.  There might be a
+flag that keeps track of whether Pacman is in power-up mode or not.  Anything
+else that is appropriate you should include.  It may be useful for the
+characters to have access to the map and game they are in.  There must be a
+<code>virtual run()</code> function that, when called, will enter an infinite
+loop that controls the character.  Then, you will create an inherited
+class for every character: Pacman, Inky, Blinky, Pinky and Clyde (for
+how to implement each of them, refer to their descriptions below).  In
+doing this, you will begin to notice that other classes need additions.  For
+example, you may want to add <code>bool isWall()</code> to your
+<code>Map</code> class to help <code>nextMove()</code> determine how to
+continue moving, and a functionality in <code>Game</code> so that each
+character knows if the game is still running.  This way, their <code>run</code>
+methods will know when to stop looping.  When implementing, continue with using
+only smart pointers.  In the end, you should have all of the ghosts and Pacman
+independently working.  DO NOT TRY TO GET THEM ALL TO WORK TOGETHER!  We will
+finish in the next assignment.  To demonstrate ghosts' functionality, you can
+assume Pacman is in the top left corner of the map, and call a <code>run</code>
+function in <code>Game::run()</code> to show that ghosts move as expected (or
+randomly if applicable).  You will not be able to fully demonstrate Pacman's
+functionality because it uses <code>getch()</code>, which is a blocking
+function.  For this, simply let the user choose each next location manually.
+In addition to these classes, you should add to your <code>Game</code> class
+metadata about the game such as number of lives and score, which updates
+when necessary.
+
+<h4>Characters</h4>
+<ul>
+    <li>Pacman - Should respond to the characters, j, k, l, i, respectively as
+    left, down, right, up.  Pacman should know his direction and continue
+    moving in that direction until either he changes direction, or he hits a
+    wall, in which case he stops, continuing to face the wall.  If Pacman
+    occupies the same cell as a ghost, he dies and the player loses a life,
+    unless the ghost is in frightened mode (after Pacman eats a powerup), in
+    which case the ghost dies and goes back to the center to be re-released.
+    Pacman starts between cells (13, 23) and (14, 23), using (0, 0) as the top
+    left corner wall.</li>
+
+    <li>Ghosts - When ghosts exit the ghost house, they start between cells
+    (13, 11) and (14, 11).  The movement of ghosts is governed by the idea of a
+    target cell on the map.  What exact cell is "targeted" depends on the
+    state the ghost is in and which ghost it is (more later).  Ghosts can only
+    look one cell ahead (so they don't perform any complex shortest-path
+    algorithms to decide where to go).  Given the ghost's current position and
+    keeping the state constant, it will move to the square whose LINEAR
+    DISTANCE to its target cell is the shortest, without ever reversing
+    direction.  If two cells are equidistant, the ghost chooses based on the
+    hierarchy up > left > down (it can never choose right based on this
+    order).  The only time a ghost can reverse direction is as a result of
+    a state change.  There are three possible ghost states: chase, scatter and
+    frightened.  In chase state, the ghosts choose their target cell based on
+    Pacman's location; in scatter state, the ghosts choose their target cell
+    to be one of the four corners; and in frightened state, the ghosts choose
+    a new direction randomly at each intersection (without reversing).  The
+    ghosts' state is chosen as follows, starting at the beginning of each life:
+    <ul>
+        <li>7 seconds scatter</li>
+        <li>20 seconds chase</li>
+        <li>7 seconds scatter</li>
+        <li>20 seconds chase</li>
+        <li>5 seconds scatter</li>
+        <li>20 seconds chase</li>
+        <li>5 seconds scatter</li>
+        <li>chase permanently</li>
+    </ul>
+    When Pacman eats a powerup, ghosts enter frightened mode for 7 seconds
+    (the ghosts turn blue for 5 seconds, then blink blue and white for 2).
+    This does not stop the scatter/chase timer!  When Pacman eats a ghost in
+    frightened mode, it goes back to the center and on exit, resumes scatter
+    or chase.
+    <ul>
+        <li>Blinky (Red) - The red ghost starts immediately outside the door
+        of the ghost house.  In scatter mode, pursues the tile one above the
+        top right corner wall (this is not reachable, so it will never
+        reach its target).  In chase mode, pursues the tile Pacman occupies.
+        </li>
+        <li>Pinky (Pink) - The pink ghost starts inside the ghost house, but
+        exits as soon as the red ghost vacates the spot outside the door.
+        In scatter mode, pursues the tile one above the top left corner wall
+        (this is not reachable, so it will never reach its target).  In chase
+        mode, pursues four tiles ahead of the tile that Pacman occupies (ahead
+        is defined by the direction Pacman is facing).</li>
+        <li>Inky (Teal) - The teal ghost starts inside the ghost house and
+        exits as soon as Pacman has eaten 30 dots.  In scatter mode, pursues
+        the tile one below the bottom right corner wall (this is not reachable,
+        so it will never reach its target).  In chase mode, the target cell
+        is decided by choosing the cell two ahead of Pacman, drawing a vector
+        from Blinky's position to that cell, doubling the length of that
+        vector, then pursuing the cell that distance and direction away from
+        Blinky.</li>
+        <li>Clyde (Orange) - The orange ghost starts inside the ghost house
+        and waits until at least one third of the dots have been eaten before
+        leaving.  In scatter mode, pursues the tile one below the
+        bottom left corner wall (this is not reachable, so it will never
+        reach its target).  In chase mode, Clyde calculates his linear distance
+        from Pacman.  If it is at least 8, it pursues the cell Pacman occupies.
+        If it is less than 8 cells away, it pursues the same cell as it would
+        in scatter mode (until it is at least 8 tiles away again).</li>
+    </ul>
+    The last caveat about ghost movement is that they will in scatter and
+    chase modes, ghosts will NEVER choose to move upward at the following four
+    intersections, using (0, 0) as the top left wall: (12, 23), (15, 23),
+    (12, 11) and (15, 11).  This restriction does not apply in frightened
+    mode.</li>
+</ul>
+
+
+<h2>Submission</h2>
+Email me (Tim) a tarball of your entire directory, and on csman, submit with
+no files so I can still give a grade back.  I will email back a tarball with
+your graded submission.

@@ -3,7 +3,6 @@
 
 #include <ncurses.h>
 #include "map.hpp"
-#include <iostream>
 
 class WindowSPtr {
 private:
@@ -36,8 +35,9 @@ public:
            that brings reference count to zero. */
         if (nRefs) {
             (*nRefs)--;
-            if (*nRefs <= 0)
+            if (*nRefs <= 0) {
                 delwin(win);
+            }
         }
     };
 

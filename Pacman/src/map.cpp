@@ -154,49 +154,15 @@ CellType Map::decideCellType(char *cell) {
        to check in decreasing order of frequency) */
     if (!memcmp((void *) cell, " . ", CELL_SIZE))
         return DOT;
-    if (!memcmp((void *) cell, "===", CELL_SIZE))
-        return WALL;
-    if (!memcmp((void *) cell, "---", CELL_SIZE))
-        return WALL;
-    if (!memcmp((void *) cell, " | ", CELL_SIZE))
-        return WALL;
-    if (!memcmp((void *) cell, "|| ", CELL_SIZE))
-        return WALL;
-    if (!memcmp((void *) cell, " ||", CELL_SIZE))
-        return WALL;
     if (!memcmp((void *) cell, "   ", CELL_SIZE))
         return EMPTY;
-    if (!memcmp((void *) cell, " +-", CELL_SIZE))
-        return WALL;
-    if (!memcmp((void *) cell, "-+ ", CELL_SIZE))
-        return WALL;
-    if (!memcmp((void *) cell, "// ", CELL_SIZE))
-        return WALL;
-    if (!memcmp((void *) cell, " //", CELL_SIZE))
-        return WALL;
-    if (!memcmp((void *) cell, "//=", CELL_SIZE))
-        return WALL;
-    if (!memcmp((void *) cell, "=//", CELL_SIZE))
-        return WALL;
-    if (!memcmp((void *) cell, " \\\\", CELL_SIZE))
-        return WALL;
-    if (!memcmp((void *) cell, "\\\\ ", CELL_SIZE))
-        return WALL;
-    if (!memcmp((void *) cell, "\\\\=", CELL_SIZE))
-        return WALL;
-    if (!memcmp((void *) cell, "=\\\\", CELL_SIZE))
-        return WALL;
     if (!memcmp((void *) cell, " O ", CELL_SIZE))
         return POWERUP;
-    if (!memcmp((void *) cell, "=+-", CELL_SIZE))
-        return WALL;
-    if (!memcmp((void *) cell, "-+=", CELL_SIZE))
-        return WALL;
-    if (!memcmp((void *) cell, "|+-", CELL_SIZE))
-        return WALL;
-    if (!memcmp((void *) cell, "-+|", CELL_SIZE))
-        return WALL;
     if (!memcmp((void *) cell, "___", CELL_SIZE))
         return DOOR;
-    return EMPTY;
+    if (!memcmp((void *) cell, "<  ", CELL_SIZE))
+        return PORT_R;
+    if (!memcmp((void *) cell, "  >", CELL_SIZE))
+        return PORT_L;
+    return WALL;
 }

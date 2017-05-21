@@ -79,11 +79,13 @@ that of the shared pointer's.  We are also supplying you with a Pacman map.
 Update your <code>Map</code> and <code>Display</code> classes accordingly.
 First and foremost, this will likely require updating the map height and width
 to 33 and 84, respectively, unless you decide your height based on the map
-file.  Then, update cell to contain metadata, which will mainly contain what
-the cell contains (dot, powerup, wall, etc.).  The supplied map was made such
-that every three characters together constitute one cell.
+file.  Then, update your <code>Cell</code> to contain metadata, which will
+mainly contain some sort of <code>enum CellType</code> (dot, eaten dot, wall,
+powerup, etc.) and the raw characters that make up that cell.  The supplied map
+was made such that every three characters together constitute one cell.
 
 
 <h2>Submission</h2>
-Submit only your source files and your Makefile.  If there are more files to
-submit than openings on csman, email a .tar file to the TA.
+Email me (Tim) a tarball of your entire directory, and on csman, submit with
+no files so I can still give a grade back.  I will email back a tarball with
+your graded submission.

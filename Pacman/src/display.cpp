@@ -103,9 +103,8 @@ void Display::drawMap(std::shared_ptr<Map> map) {
     /* Draw every character from the map. */
     for (int row = 0; row < map->getHeight(); row++) {
         for (int col = 0; col < map->getWidth(); col++) {
-            for (int i = 0; i < CELL_SIZE; i++) {
-                putChar(_mapWindow, col, row, map->getCell(col, row).raw[i]);
-            }
+            putChar(_mapWindow, col, row,
+                map->getCell(col/3, row).raw[col%CELL_SIZE]);
         }
     }
 
