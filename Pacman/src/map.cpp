@@ -1,6 +1,49 @@
 #include "map.hpp"
 
 /*
+ Map
+
+ Constructor, takes the filename to populate the map from.
+
+ Arguments: const char *filename - name of the file to read from
+
+ Returns:   None.
+*/
+Map::Map(const char *filename) {
+    /* Fills the Cell array with empty cells, which are spaces. */
+    _cells = CellArray(new CellRow[_height]);
+
+    /* Defines an empty cell */
+    Cell emptyCell;
+    memset((void *) emptyCell.raw, ' ', CELL_SIZE);
+
+    for (int y = 0; y < _height; y++) {
+        /* Allocate memory and check pointer validity. */
+        _cells[y] = CellRow(new Cell[_width]);
+
+        /* Fill this row with all empty cells. */
+        for (int x = 0; x < _width; x++)
+            _cells[y][x] = emptyCell;
+    }
+
+    /* Read the map from the file */
+    readFromFile(filename);
+}
+
+/*
+ ~Map
+
+ Destructor of map class.
+
+ Arguments: None.
+
+ Returns:   None.
+*/
+Map::~Map() {
+    /* Used smart pointers */
+}
+
+/*
  readFromFile (private)
 
  Reads map from a file and populates the map vector.
@@ -40,49 +83,6 @@ void Map::readFromFile(const char *filename) {
             _cells[row][col].type = decideCellType(next);
         } while (col++ < _width);
     } while (row++ < _height);
-}
-
-/*
- Map
-
- Constructor, takes the filename to populate the map from.
-
- Arguments: const char *filename - name of the file to read from
-
- Returns:   None.
-*/
-Map::Map(const char *filename) {
-    /* Fills the Cell array with empty cells, which are spaces. */
-    _cells = CellArray(new CellRow[_height]);
-
-    /* Defines an empty cell */
-    Cell emptyCell;
-    memset((void *) emptyCell.raw, ' ', CELL_SIZE);
-
-    for (int y = 0; y < _height; y++) {
-        /* Allocate memory and check pointer validity. */
-        _cells[y] = std::unique_ptr<Cell[]>(new Cell[_width]);
-
-        /* Fill this row with all empty cells. */
-        for (int x = 0; x < _width; x++)
-            _cells[y][x] = emptyCell;
-    }
-
-    /* Read the map from the file */
-    readFromFile(filename);
-}
-
-/*
- ~Map
-
- Destructor of map class.
-
- Arguments: None.
-
- Returns:   None.
-*/
-Map::~Map() {
-    /* Used smart pointers */
 }
 
 /*

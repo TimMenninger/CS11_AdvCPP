@@ -11,14 +11,10 @@ BIN_DIR = bin
 DATA_DIR = data
 
 # There should be an object file for each cpp file you create.
-RUN_GAME_DEP =	$(OBJ_DIR)/game.o
 RUN_GAME_DEP +=	$(OBJ_DIR)/display.o
-RUN_GAME_DEP +=	$(OBJ_DIR)/map.o
-RUN_GAME_DEP +=	$(OBJ_DIR)/pacman.o
-RUN_GAME_DEP +=	$(OBJ_DIR)/ghost.o
 RUN_GAME_DEP +=	$(OBJ_DIR)/main.o
 
-RUN_GAME_EXE =	$(BIN_DIR)/pacman
+RUN_GAME_EXE =	$(BIN_DIR)/vim
 
 
 TARGETS = $(RUN_GAME_EXE)
