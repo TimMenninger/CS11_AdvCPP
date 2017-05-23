@@ -19,7 +19,8 @@ enum Direction {
 
 /* Calculates the linear distance between two locations */
 static inline double linDist(Location l1, Location l2) {
-    return sqrt((l2.x - l1.x) * (l2.x - l1.x) + (l2.y - l1.y) * (l1.y - l1.y));
+    double x1 = l1.x, x2 = l2.x, y1 = l1.y, y2 = l2.y;
+    return sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
 };
 
 #endif // ifndef COMMON

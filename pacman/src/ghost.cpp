@@ -54,39 +54,47 @@ char Ghost::getPossibleMoves() {
     char moves = 0;
 
     /* Conditions for being able to move W */
-    if (_dir != W && !_game->isWall(_loc.x-1, _loc.y)) {
+    if (!_game->isWall(_loc.x-1, _loc.y)) {
         if (_dir == E && _st == SCATTER_INT) {
             _st = SCATTER; /* Only want to be able to do this once */
             moves |= _W;
         }
-        moves |= _W;
+        else if (_dir != E) {
+            moves |= _W;
+        }
     }
 
     /* Conditions for being able to move N */
-    if (_dir != N && !_game->isWall(_loc.x, _loc.y-1)) {
+    if (!_game->isWall(_loc.x, _loc.y-1)) {
         if (_dir == S && _st == SCATTER_INT) {
             _st = SCATTER; /* Only want this to happen once */
             moves |= _N;
         }
-        moves |= _N;
+        else if (_dir != S) {
+            moves |= _N;
+        }
     }
 
     /* Conditions for being able to move S */
-    if (_dir != S && !_game->isWall(_loc.x, _loc.y+1)) {
+    if (!_game->isWall(_loc.x, _loc.y+1)) {
         if (_dir == N && _st == SCATTER_INT) {
             _st = SCATTER; /* Only want to be able to do this once */
             moves |= _S;
         }
-        moves |= _S;
+        else if (_dir != N) {
+            moves |= _S;
+        }
     }
 
     /* Conditions for being able to move E */
-    if (_dir != E && !_game->isWall(_loc.x+1, _loc.y)) {
+    if (!_game->isWall(_loc.x+1, _loc.y)) {
         if (_dir == W && _st == SCATTER_INT) {
             _st = SCATTER; /* Only want this to happen once */
             moves |= _E;
         }
-        moves |= _E;
+        else if (_dir != W) {
+            moves |= _E;
+        }
     }
 
     return moves;
@@ -118,12 +126,14 @@ void Ghost::updateLocation() {
 
     if (moves & _N) {
         bestDist = linDist(_tgt, Location(_loc.x, _loc.y-1));
+
         bestLoc = Location(_loc.x, _loc.y-1);
         bestDir = N;
         dirs++;
     }
-    else if (moves & _W) {
+    if (moves & _W) {
         double dist = linDist(_tgt, Location(_loc.x-1, _loc.y));
+
         if (bestDist < 0 || dist < bestDist) {
             bestDist = dist;
             bestLoc = Location(_loc.x-1, _loc.y);
@@ -137,8 +147,9 @@ void Ghost::updateLocation() {
             bestDir = W;
         }
     }
-    else if (moves & _S) {
+    if (moves & _S) {
         double dist = linDist(_tgt, Location(_loc.x, _loc.y+1));
+
         if (bestDist < 0 || dist < bestDist) {
             bestDist = dist;
             bestLoc = Location(_loc.x, _loc.y+1);
@@ -152,8 +163,9 @@ void Ghost::updateLocation() {
             bestDir = S;
         }
     }
-    else if (moves & _E) {
+    if (moves & _E) {
         double dist = linDist(_tgt, Location(_loc.x+1, _loc.y));
+
         if (bestDist < 0 || dist < bestDist) {
             bestDist = dist;
             bestLoc = Location(_loc.x+1, _loc.y);
@@ -170,6 +182,7 @@ void Ghost::updateLocation() {
 
     /* Update the location accordingly */
     _loc = bestLoc;
+    _dir = bestDir;
 }
 
 /*
@@ -279,7 +292,6 @@ void Blinky::move() {
     while (_game->isRunning) {
         /* Get Pacman's location and direction for simplicity */
         Location pac = _game->pacman->getLocation();
-        std::cout << _loc.x << " " << _loc.y << " " << _tgt.x << " " << _tgt.y << std::endl;
 
         /* Define the target cell based on state. */
         if (_st == CHASE) {
@@ -293,7 +305,7 @@ void Blinky::move() {
         updateLocation();
 
         /* Wait 1/speed seconds to emulate proper movement */
-        usleep(1000000 / _spd);
+        usleep(1000000 / _spd * 10);
     }
 }
 

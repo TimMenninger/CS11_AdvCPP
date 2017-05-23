@@ -158,8 +158,6 @@ CellType Map::decideCellType(char *cell) {
         return EMPTY;
     if (!memcmp((void *) cell, " O ", CELL_SIZE))
         return POWERUP;
-    if (!memcmp((void *) cell, "___", CELL_SIZE))
-        return DOOR;
     if (!memcmp((void *) cell, "<  ", CELL_SIZE))
         return PORT_R;
     if (!memcmp((void *) cell, "  >", CELL_SIZE))

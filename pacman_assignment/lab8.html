@@ -100,7 +100,12 @@ block if lock acquisition fails.
 Your assignment is essentially to finish Pacman, which will require threading.
 To do this, <code>Game::run()</code> should spawn a thread for each of the
 ghosts' <code>move()</code> function and a thread for <code>getch()</code>
-before starting the loop where it updates the map continuously.  Because we
+before starting the loop where it updates the map continuously.  You will need
+to identify places where more than one thread accesses the same shared
+resource and make this thread-friendly.  In some places, it will be easiest
+to read/write using an accessor function, then handle the locking in that
+function.  Other places won't be as simple because you will need the lock
+for longer than just the reading or writing part of the operation.  Because we
 want <code>getch()</code> in a thread of its own, we should move that out of
 <code>Game::run()</code> and into its own wrapper function within
 <code>Game</code>.  This wrapper function will listen for keypresses and handle
@@ -131,7 +136,9 @@ This can probably be a variable whose scope is inside the <code>run()</code>
 function, along with the score variable and number of lives left.  The stopping
 condition of this loop should be when the game is over, either from the user
 pressing &lt;ESCAPE&gt; or Pacman losing all of his lives (add a lives counter
-to your game class to be able to check this).  Continually print the score
+to your game class to be able to check this).  Make sure that when the game
+is over, you notify the other threads (by updating your <code>isRunning</code>
+flag if you followed that suggestion last week).  Continually print the score
 and lives left to the text window in any way you like.  You should also have
 a small <code>usleep</code>, maybe one millisecond, in your <code>run()</code>
 loop to avoid it taking 100% cpu coverage.
