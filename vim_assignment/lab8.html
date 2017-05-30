@@ -71,6 +71,7 @@ occur until after the if. Likewise, it can't release the read lock, acquire
 the write lock, then write because in between the release and acquire, the
 resource may change such that we no longer want to write. The fastest solution
 to such a scenario, which seems inefficient, is to do the same check twice.
+In general, we want to spend as little time as possible with resources locked.
 For example:
 <pre class="prettyprint code">
     acquire read lock
@@ -95,14 +96,44 @@ which return <code>true</code> if and only if it acquires the lock, and do NOT
 block if lock acquisition fails.
 
 
+<h2>Autorecovery</h2>
+Some editors have an autosave feature. The way this works is the editor
+creates a temporary file that it saves changes to as they are made. This
+is what is used as an automatic backup in case the editor closes unexpectedly.
+Usually, text editors are extremely robust so that it doesn't accidentally
+overwrite another file. For this, we will just put a "_temp" suffix on our
+temporary files, as this should be sufficient to teach a point and we'll be
+smart enough not to create files with "_temp" after the file extension. Now,
+there are a few guidelines on how to use this. Periodically during use of our
+text editor, we will save the file contents from our array to our _temp file,
+unsolicited by the user. On normal exit, we delete the _temp file. On start,
+we check for the existence of this _temp file. If it exists, then the editor
+didn't exit normally last time, and we will load from this file instead of the
+argued one (text editors should ask the user first, but we won't for the sake
+of time). If it doesn't exist, load the argued file as normal and create a
+_temp file for this session. You should never save to the argued file
+unsolicited! That only happens when the user requests it.
+
+
 <h2>Assignment</h2>
-Your assignment is to make <code>Vim</code> faster by using threads, and being
+Your assignment is to implement autorecovery (it should be relatively little
+work) and make <code>Vim</code> faster by using threads, and being
 thread-safe where applicable. The way we will do this is by spawning a thread
 whenever we <code>refresh()</code> the display and whenever we
 <code>save()</code>. The way this is done is up to you, whether you want
 one thread for each that doesn't exit until a flag is set by your quitting
 mechanism, or creating a new thread each time you need to, then deleting it
-as soon as it is done. In the spirit of drilling smart pointers into
+as soon as it is done. For threading to be useful for saving, we want to not
+lock the string vector for the entire duration. Doing that would basically be
+the same as doing it all in one thread. Instead, you should have a lock for the
+string vector as well as one for every string in the vector. When only one
+line is being accessed, we only need to lock that line (read or write
+respectively) as well as read-lock the entire vector. Then, only if we need
+to add or remove a line will we write lock the entire vector. This helps us
+because we can write to multiple lines at the same time. When we save, we
+do one line at a time, which allows us to write to other lines simultaneously.
+The last thread we will create is one that periodically (maybe once every
+minute or so) saves a backup. In the spirit of drilling smart pointers into
 you, continue using exclusively smart pointers where applicable.
 
 

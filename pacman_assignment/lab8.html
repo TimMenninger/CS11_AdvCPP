@@ -71,6 +71,7 @@ occur until after the if.  Likewise, it can't release the read lock, acquire
 the write lock, then write because in between the release and acquire, the
 resource may change such that we no longer want to write.  The fastest solution
 to such a scenario, which seems inefficient, is to do the same check twice.
+In general, we want to spend as little time as possible with resources locked.
 For example:
 <pre class="prettyprint code">
     acquire read lock

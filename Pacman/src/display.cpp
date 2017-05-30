@@ -19,6 +19,9 @@ Display::Display() {
     cbreak();
     noecho();
 
+    /* Want no cursor */
+    curs_set(0);
+
     /* Use keyboard */
     raw();
     keypad(stdscr, TRUE);
