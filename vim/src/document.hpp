@@ -9,6 +9,7 @@
 #include <mutex>
 #include <shared_mutex>
 #include <math.h>
+#include <regex>
 
 /* Line locks will lock segments of this many lines. */
 #define LOCK_LINES      10
@@ -76,6 +77,7 @@ public:
     Cursor nextWord();
     Cursor prevWord();
     Cursor endOfWord();
+    vector<Cursor> performSearch(regex);
 };
 
 #endif // ifndef DOCUMENT

@@ -1,5 +1,5 @@
 #include "vim.hpp"
-
+#include <iostream>
 /*
  Vim
 
@@ -30,6 +30,15 @@ Vim::Vim(string filename) {
     setCursor(0, 0);
     line0 = 0;
     col0 = 0;
+
+    /* No string searched originally */
+    _lastSearch = string("hello");
+    _searchDir = '/';
+    searchResults.clear();
+    searchResults.push_back(Cursor(1, 1));
+    searchResults.push_back(Cursor(5, 5));
+    searchResults.push_back(Cursor(15, 15));
+    searchResults.push_back(Cursor(20, 20));
 
     /* Display file */
     outputFileToDisplay();
@@ -151,8 +160,16 @@ void Vim::outputStateToDisplay() {
     case REPLACE:
         _disp->putLine(_stateWindow, 0, (char *) string("-- REPLACE --").c_str(), true);
         break;
+    case SEARCH:
+        /* Follow through to display search string */
+        if (_lastSearch.size() == 0)
+            _lastSearch += _searchDir;
     case DEFAULT:
-        /* Follow through */
+        if (_lastSearch != string("")) {
+            _disp->putLine(_stateWindow, 0, (char *) (_lastSearch).c_str(), true);
+            break;
+        }
+        /* Else follow through */
     default:
         _disp->putLine(_stateWindow, 0, (char *) string("").c_str(), true);
         break;
@@ -202,6 +219,57 @@ void Vim::setCursor(int line, int col, bool incNL) {
     /* Set the cursor in the terminal */
     wmove(_textWindow, c.line-line0, c.col-col0);
     wrefresh(_textWindow);
+}
+
+/*
+ nextSearchResult
+
+ This returns the next search result from the list of cursors. If that list
+ is NULL, we may need to search again, so we do. If it's still NULL, there
+ are no results and this returns the current cursor location.
+
+ Arguments: Cursor curr - the current location of the cursor (to find next
+                result relative to)
+
+ Returns:   Cursor - the location of the next search result, or the current
+                location if no result exists
+*/
+Cursor Vim::nextSearchResult(Cursor curr) {
+    /* Try to perform search if there is no result array. */
+    if (searchResults.size() == 0 && _lastSearch.size() > 1)
+        searchResults = _doc->performSearch(regex(_lastSearch.substr(1)));
+
+    /* If still NULL, nothing there */
+    if (searchResults.size() == 0 || _lastSearch.size() <= 1)
+        return curr;
+
+    /* Otherwise, search in a direction, taking the first instance we find,
+       wrapping when necessary. */
+    if (_searchDir == '/') {
+        /* Forward */
+        vector<Cursor>::iterator it = searchResults.begin();
+        for (; it < searchResults.end(); it++)
+            if (it->line == curr.line && it->col > curr.col)
+                return *it;
+            else if (it->line > curr.line)
+                return *it;
+        /* If here, we wrapped, so take the first one */
+        return *searchResults.begin();
+    }
+    else if (_searchDir == '?') {
+        /* Backward */
+        vector<Cursor>::iterator it = searchResults.end() - 1;
+        for (; it >= searchResults.begin(); it--)
+            if (it->line == curr.line && it->col < curr.col)
+                return *it;
+            else if (it->line < curr.line)
+                return *it;
+        /* If here, we wrapped, so take the last one */
+        return *(searchResults.end() - 1);
+    }
+
+    /* If here, there was an error searching */
+    return curr;
 }
 
 /*
@@ -281,6 +349,7 @@ void Vim::keyListener() {
 
                     outputFileToDisplay();
                 }
+                searchResults.clear();
             }
             /************************************
             INCREASE MULTIPLIER
@@ -304,6 +373,23 @@ void Vim::keyListener() {
                 outputStateToDisplay();
             }
             /************************************
+            SEARCH MODE
+            ************************************/
+            else if (c == '/') {
+                _state = SEARCH;
+                _lastSearch = string("");
+                searchResults.clear();
+                _searchDir = '/';
+                outputStateToDisplay();
+            }
+            else if (c == '?') {
+                _state = SEARCH;
+                _lastSearch = string("");
+                searchResults.clear();
+                _searchDir = '?';
+                outputStateToDisplay();
+            }
+            /************************************
             REPLACE MODE
             ************************************/
             else if (c == 'R') {
@@ -315,6 +401,7 @@ void Vim::keyListener() {
             ************************************/
             else if (c == 'u') {
                 changes->undo();
+                searchResults.clear();
                 outputFileToDisplay();
             }
             /************************************
@@ -322,7 +409,15 @@ void Vim::keyListener() {
             ************************************/
             else if (c == '.') {
                 changes->redo();
+                searchResults.clear();
                 outputFileToDisplay();
+            }
+            /************************************
+            FIND NEXT SEARCH INSTANCE
+            ************************************/
+            else if (c == 'n') {
+                Cursor next = nextSearchResult(curs);
+                setCursor(next.line, next.col);
             }
             /************************************
             TRAVERSE WORDS
@@ -354,7 +449,7 @@ void Vim::keyListener() {
             ************************************/
             else if (c == KEY_UP)
                 setCursor(--curs.line, curs.col);
-            else if (c == KEY_DOWN)
+            else if (c == KEY_DOWN || c == 10 /* newline */)
                 setCursor(++curs.line, curs.col);
             else if (c == KEY_RIGHT)
                 setCursor(curs.line, ++curs.col);
@@ -372,13 +467,7 @@ void Vim::keyListener() {
                 changes->addChange(new Insertion
                     (_doc, c, curs.line, curs.col+1));
                 _doc->insert(c);
-                outputFileToDisplay();
-            }
-            /************************************
-            INSERT NEWLINE
-            ************************************/
-            else if (c == 10) {
-                _doc->insert('\n');
+                searchResults.clear();
                 outputFileToDisplay();
             }
             /************************************
@@ -391,6 +480,41 @@ void Vim::keyListener() {
             }
             break;
         case SEARCH:
+            /************************************
+            EXIT SEARCH MODE
+            ************************************/
+            if (c == 27)  {
+                _state = DEFAULT;
+                if (_lastSearch.size() == 1)
+                    _lastSearch = string("");
+                setCursor(curs.line, curs.col);
+                outputStateToDisplay();
+            }
+            /************************************
+            PERFORM SEARCH
+            ************************************/
+            else if (c == 10) {
+                _state = DEFAULT;
+                Cursor next = nextSearchResult(curs);
+                setCursor(next.line, next.col);
+                outputStateToDisplay();
+            }
+            /************************************
+            BACKSPACE
+            ************************************/
+            else if (c == 127) {
+                if (_lastSearch.size() > 1)
+                    _lastSearch.pop_back();
+                outputStateToDisplay();
+            }
+            /************************************
+            ENTER STRING TO SEARCH
+            ************************************/
+            else if (c >= 32) {
+                /* Display the string to search */
+                _lastSearch += c;
+                outputStateToDisplay();
+            }
             break;
         case INSERT:
             /************************************
@@ -398,6 +522,7 @@ void Vim::keyListener() {
             ************************************/
             if (c == 127) {
                 _doc->deleteChar();
+                searchResults.clear();
                 outputFileToDisplay();
             }
             /************************************
@@ -419,6 +544,7 @@ void Vim::keyListener() {
                 changes->addChange(new Insertion
                     (_doc, c, curs.line, curs.col+1));
                 _doc->insert(c);
+                searchResults.clear();
                 outputFileToDisplay();
             }
             /************************************
@@ -429,6 +555,7 @@ void Vim::keyListener() {
                 changes->addChange(new Insertion
                     (_doc, c, curs.line, curs.col+1));
                 _doc->insert('\n');
+                searchResults.clear();
                 outputFileToDisplay();
             }
             /************************************

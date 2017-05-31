@@ -549,3 +549,41 @@ Cursor Document::endOfWord() {
 
     return Cursor(l, --c);
 }
+
+/*
+ performSearch
+
+ This takes the last search string and searches the file for instances of it.
+ This uses regular expressions. It populates a list of Cursor locations.
+
+ Arguments: regex re - the regular expression to search for.
+
+ Returns:   vector<Cursor> - list of match locations.
+*/
+vector<Cursor> Document::performSearch(regex re) {
+    /* Get list of all indices of matches */
+    vector<Cursor> matches;
+    fileLock.lock_shared();
+    for (int i = 0; i < file.size(); i++) {
+        /* Lock this line so we can read it */
+        lineLocks[i/LOCK_LINES].lock_shared();
+
+        /* Find all matches using regex library. */
+        smatch m;
+        string s(file[i]);
+        int charsSkipped = 0;
+        while (regex_search (s, m, re)) {
+            matches.push_back(Cursor(i, charsSkipped + m.position()));
+            string tmp = m.suffix().str();
+            charsSkipped += s.length() - tmp.length();
+            s = tmp;
+        }
+
+        /* Unlock the line */
+        lineLocks[i/LOCK_LINES].unlock_shared();
+    }
+    /* Unlock the file */
+    fileLock.unlock_shared();
+
+    return matches;
+}

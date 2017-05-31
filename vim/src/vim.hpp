@@ -6,6 +6,8 @@
 #include "change.hpp"
 #include <unistd.h>
 #include <thread>
+#include <vector>
+#include <regex>
 
 /* Number of seconds to wait before auto saving */
 #define AUTO_SAVE_SECS  30
@@ -26,12 +28,24 @@ private:
     WindowSPtr _stateWindow;            /* Where the status is put */
     string _filename;                   /* The file we are editing */
     string _tempFilename;               /* Name of temp autosaved file */
+    string _lastSearch;                 /* Last string that was searched */
+    char _searchDir;                    /* Search forward '/' or backward '?' */
     VimState _state;                    /* The editing state */
     int _times;                         /* Times to perform next action */
     int line0;                          /* Index of first line displayed */
     int col0;                           /* Index of first char displayed */
     Change *changes;                    /* Linked list of changes */
     bool done;                          /* When true, we should stop Vim */
+    vector<Cursor> searchResults;       /* Locations of search results */
+
+    std::string generateTempFilename();
+    void outputFileToDisplay();
+    void outputFileInfo();
+    void outputStateToDisplay();
+    void setCursor(int, int, bool=false);
+    void keyListener();
+    void autoRecovery();
+    Cursor nextSearchResult(Cursor);
 
 public:
     /********************
@@ -47,15 +61,7 @@ public:
     /********************
     MEMBERS
     ********************/
-    std::string generateTempFilename();
-    void outputFileToDisplay();
-    void outputFileInfo();
-    void outputStateToDisplay();
-    void setCursor(int, int, bool=false);
     void run();
-
-    void keyListener();
-    void autoRecovery();
 };
 
 #endif // ifndef VIM
