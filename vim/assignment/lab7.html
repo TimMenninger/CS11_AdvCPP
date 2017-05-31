@@ -1,0 +1,162 @@
+<h1>Lab 7: Polymorphism and Optimizations</h1>
+
+
+<h2>References</h2>
+<ul><a href=http://www.cplusplus.com/doc/tutorial/polymorphism/>C++ Documentation on Virtual Functions</a></ul>
+<ul><a href=https://hea-www.harvard.edu/~fine/Tech/vi.html>vim Keybindings</a></ul>
+
+
+<h2>Polymorphism</h2>
+
+When editing text, every change can fundamentally be categorized as either an
+insertion or a deletion. To support tracking of changes (and subsequently
+undoing and redoing), we will employ polymorphism. We want to ultimately
+add every change to a list, then on undo or redo, call the appropriate
+function without the need to consider whether it was a deletion or insertion.
+This can be accomplished by creating a <code>Change</code> interface that
+<code>Insertion</code> and <code>Deletion</code> classes will implement. When
+we instantiate a <code>Change</code> object, we essentially decide at creation
+how it should act whenever e.g. <code>undo()</code> is called on this
+<code>Change</code>. To create an interface, start by creating the base
+class, in this example, <code>Change</code>. Decide what components are
+constant among all <code>Change</code>'s, for example the text that changed,
+and implement that like you would any other class. Then for the parts that
+depend on the implementation we will make <code>virtual</code>. This tells
+the compiler to defer definition details to any child class. In the end,
+it will look something like
+<pre class="prettyprint code">
+    /* Class provides interface for children */
+    class MyInterface {
+        int allObjectsHaveThis;             /* To be defined by MyInterface */
+        virtual void functionToDo();        /* Children must implement this */
+    };
+
+    /* Must implement the interface left by parent class */
+    class MyInterfaceChild : public MyInterface {
+        void functionToDo() { /* Do something */ };
+    };
+</pre>
+Note that there can be a function definition in the parent class that is the
+"default" if the children don't implement it.
+
+
+<h2>Assignment</h2>
+
+<h4>Optimizing Current Code</h4>
+<p>
+Update so if the cursor moves out of the window, reprint everything to give
+the appearance of scrolling. If your window is 20 lines, you originally show
+lines 0-19 of the file. If your cursor is on the bottom line and it moves
+down, you should then show lines 1-20, leaving the cursor on the bottom line.
+Similarly for the characters in each line. A good way to implement this is to
+store the line and column numbers that should be at the top left of the
+display, then start your iteration there when you write to the display.
+</p>
+<p>
+Using this, we can make the editing section faster by only reprinting
+characters that change. If a character was inserted (other than a newline),
+rewrite only characters in that line, shifting right those after the new
+character. If a new line is present, only rewrite the contents below it,
+pushing down everything below the newline. The new line should now contain
+everything that was in the same line to the right of the new character.
+In our case, the time to print to the display is negligible, so we will make
+this part OPTIONAL.
+</p>
+<p>
+Finally, we will slightly improve saving, but more to come next week. For now,
+the best we can do is simply not save if we don't have to. Keep track of
+whether the file has been edited since the last save, and on save, only
+write to a file if it has been edited OR it is writing to a new file (not the
+one that was originally opened).
+</p>
+
+<h4>Undo and Redo</h4>
+We want to start tracking changes so we can undo and redo. The way we will
+do this is with a doubly-linked list of changes. The reason we do this instead
+of an array is because we will always have a pointer to the next change to
+undo, which is chronologically one before the next change to redo. We will
+only ever access one of those two changes, and so accessing this linked list
+will always be O(1). We can then take advantage of the O(1) insertion and
+deletion without worrying about the usual linked-list drawback that indexing
+is O(n). Implement this functionality such that each edit gets a
+<code>Change</code>. In actual vim, an entire insert session would constitute
+one change, but that is extremely tricky to implement, so for this, we can
+treat each character chagne as one change. This means that everything that
+happens during one continuous INSERT mode goes into one <code>Change</code>,
+as does each edit by shortcut that occurs during DEFAULT mode (e.g. 'x' to
+delete a character). Every <code>Change</code> should know the line and column
+number (both 0 indexed) of the first character that changed, as well as a
+string that contains what changed (either inserted or deleted).  It might also
+have a reference to the <code>Document</code> so it can change it. To make it a
+doubly-linked list, put <code>next</code> and <code>prev</code> fields that
+point to other <code>Change</code>'s. Finally, every change needs some
+notion of how to undo and redo, but this depends on the type of change,
+so these will be <code>virtual void undo() = NULL</code> and <code>virutal void
+redo() = NULL</code>. Create <code>Insertion</code> and <code>Deletion</code>
+classes that inherit from <code>Change</code> and implement <code>undo()</code>
+and <code>redo()</code>, where <code>Insertion::undo()</code> deletes the
+inserted code (which is stored in <code>Change</code> along with its
+location in the file). Update your <code>Vim</code> class to contain a (smart)
+pointer to the <code>Change</code> corresponding to the next
+<code>undo()</code> call. Every time there is a change to the document, a
+new <code>Change</code> should be added to your linked list and your
+<code>nextUndo</code> should point to that most recent change. In doing this,
+you lose any <code>Change</code>'s that you could have redone because you have
+to reset the next pointer. You may need a dummy <code>Change</code> when this
+list is empty to avoid ambiguity when you've undone every <code>Change</code>,
+knowing whether there is anything you can redo.
+
+<h4>Searching</h4>
+Vim also supports search using regular expressions.  In C++, we will
+(<code>#include &lt;regex&gt;</code>).  Refer to the / keybinding below to
+see the user interface.  The best way to implement it would be to on search,
+create a list of all indices of matches.  Then each time we want the next
+match, we can just refer to that list.  Of course, if we edit the file, these
+indices become useless, so each edit should clear this list.  For this case,
+we should also keep somewhere the most recent regex that was searched, so if
+we search, edit, try to find next match with 'n' (refer below), we don't have
+to ask what the search was for before populating a new index list. This part
+is OPTIONAL.
+
+<h4>New Keybindings</h4>
+Again, we will have required keybindings to exhibit functionality and
+optional ones for enrichment.
+<ul>Required:<ul>
+    <li>all required keybindings from last week should still work</li>
+    <li>u - undo the last change if in DEFAULT mode. If no more changes, do
+        nothing.</li>
+    <li>. (period) - redo the next change if in DEFAULT mode. If no more
+        changes to redo, do nothing.</li>
+</ul></ul><ul>Optional:<ul>
+    <li>w (lower case) - in DEFAULT mode, moves the cursor to the first
+        character of the next word in the file.</li>
+    <li>b - in DEFAULT mode, moves the cursor to the first character of the
+        current word (previous word if already on the first character) in the
+        file.</li>
+    <li>e - in DEFAULT mode, moves the cursor to the last character of the
+        current word (next word if already on the last character) in the
+        file.</li>
+    <li>/ (forward slash) - when in DEFAULT mode, enters forward search mode.
+        Anything typed after the slash and before an &lt;ENTER&gt; will be
+        searched (don't search until &lt;ENTER&gt; or it will slow you down
+        a lot). On &lt;ENTER&gt;, the cursor moves to the next instance of
+        that string in the file, wrapping if necessary. The cursor does not
+        move if the string is not found. In this mode, the bottom ncurses line
+        should display <code>/&lt;string_to_search&gt;</code>. The searched
+        string should be stored somewhere for future reference, as should the
+        search direction for when we leave this state.</li>
+    <li>? (question mark) - when in DEFAULT mode, enters reverse search mode.
+        This does the same thing as forward search except it moves the cursor
+        to the beginning of the first instance BEFORE the current cursor
+        location. In this mode, the bottom line should display
+        <code>? &lt;string_to_search&gt;</code>.</li>
+    <li>n - when in DEFAULT mode, recalls the most recently searched string
+        and direction and finds the next instance of it in the appropriate
+        direction.</li>
+</ul></ul>
+
+
+<h2>Submission</h2>
+Email me (Tim) a tarball of your entire directory, and on csman, submit with
+no files so I can still give a grade back. I will email back a tarball with
+your graded submission.

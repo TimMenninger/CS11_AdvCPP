@@ -1,5 +1,4 @@
 #include "ghost.hpp"
-#include <iostream>
 
 /**********************************************************************
 
@@ -21,7 +20,7 @@ Ghost::Ghost(std::shared_ptr<Game> g) {
     _loc = Location(0, 0);
     _dir = N;
     _spd = 0;
-    _st  = CHASE;
+    _st  = JAIL;
     _tgt = Location(0, 0);
 
     _game = g;
@@ -65,7 +64,12 @@ char Ghost::getPossibleMoves() {
     }
 
     /* Conditions for being able to move N */
-    if (!_game->isWall(_loc.x, _loc.y-1)) {
+    if (!_game->isWall(_loc.x, _loc.y-1) &&
+        _loc != Location(NO_UP_X1, NO_UP_Y1) &&
+        _loc != Location(NO_UP_X2, NO_UP_Y2) &&
+        _loc != Location(NO_UP_X3, NO_UP_Y3) &&
+        _loc != Location(NO_UP_X4, NO_UP_Y4)
+    ) {
         if (_dir == S && _st == SCATTER_INT) {
             _st = SCATTER; /* Only want this to happen once */
             moves |= _N;
@@ -180,6 +184,12 @@ void Ghost::updateLocation() {
         }
     }
 
+    /* Check if we are at portal */
+    if (_loc == Location(L_PORT_X, L_PORT_Y) && bestDir == W)
+        bestLoc = Location(R_PORT_X, R_PORT_Y);
+    else if (_loc == Location(R_PORT_X, R_PORT_Y) && bestDir == E)
+        bestLoc = Location(L_PORT_X, L_PORT_Y);
+
     /* Update the location accordingly */
     _loc = bestLoc;
     _dir = bestDir;
@@ -197,6 +207,19 @@ void Ghost::updateLocation() {
 */
 void Ghost::setState(GhostState state) {
     _st = state;
+}
+
+/*
+ getState
+
+ Gets the ghost's state.
+
+ Arguments: None.
+
+ Returns:   GhostState - the state of the ghost
+*/
+GhostState Ghost::getState() {
+    return _st;
 }
 
 /*
@@ -241,32 +264,7 @@ void Ghost::onDeath() {
        right.  We will try to fill up in order from left to right.
        We will check the location of each ghost, and mark from false
        to true if they are in one of these cells. */
-    bool occupied[3] = {false, false, false};
-    for (int i = 0; i < 4; i++) {
-        if (_game->ghosts[i]->getLocation().y != GHOSTHOUSE_Y &&
-            _game->ghosts[i]->getTarget().y != GHOSTHOUSE_Y) {
-            /* Check each spot individually */
-            occupied[0] |=
-                (_game->ghosts[i]->getLocation().x == GHOSTHOUSE_XL ||
-                 _game->ghosts[i]->getTarget().x   == GHOSTHOUSE_XL);
-
-            occupied[1] |=
-                (_game->ghosts[i]->getLocation().x == GHOSTHOUSE_XC ||
-                 _game->ghosts[i]->getTarget().x   == GHOSTHOUSE_XC);
-
-            occupied[2] |=
-                (_game->ghosts[i]->getLocation().x == GHOSTHOUSE_XR ||
-                 _game->ghosts[i]->getTarget().x   == GHOSTHOUSE_XR);
-        }
-    }
-
-    /* Now decide which to go to. */
-    if (!occupied[0])
-        _tgt = Location(GHOSTHOUSE_XL, GHOSTHOUSE_Y);
-    else if (!occupied[1])
-        _tgt = Location(GHOSTHOUSE_XC, GHOSTHOUSE_Y);
-    else /* if (!occupied[2]) */
-        _tgt = Location(GHOSTHOUSE_XR, GHOSTHOUSE_Y);
+    _tgt = Location(GHOST_EXIT_X, GHOST_EXIT_Y);
 }
 
 /**********************************************************************
@@ -277,10 +275,14 @@ GHOST IMPLEMENTATIONS
 
 /***** BLINKY *****/
 void Blinky::onStart() {
+    /* No longer need to restart */
+    _rstrt = false;
+
     /* Blinky starts outside the cell, so this will just set the
        location and return. */
     _loc = Location(BLINKY_X0, BLINKY_Y0);
     _spd = SPD_BLINKY;
+    _st  = _game->ghostState;
 }
 
 void Blinky::move() {
@@ -290,6 +292,11 @@ void Blinky::move() {
 
     /* Move until the game is over. */
     while (_game->isRunning) {
+        /* If we are at start condition, run onStart to start over because
+           Pacman died */
+        if (_rstrt)
+            this->onStart();
+
         /* Get Pacman's location and direction for simplicity */
         Location pac = _game->pacman->getLocation();
 
@@ -300,23 +307,41 @@ void Blinky::move() {
         else if (_st == SCATTER || _st == SCATTER_INT) {
             _tgt = Location(BLINKY_SCAT_X, BLINKY_SCAT_Y);
         }
+        else if (_st == DYING && _tgt == _loc) {
+            _st = _game->ghostState;
+        }
 
         /* Update the location based on the target, state, etc */
         updateLocation();
 
         /* Wait 1/speed seconds to emulate proper movement */
-        usleep(1000000 / _spd * 10);
+        usleep((1 - (0.5 * (_st == DYING))) * 1000000 / _spd / (1 - (_st == FRIGHTENED) * 0.4));
     }
 }
 
 /***** PINKY *****/
 void Pinky::onStart() {
+    /* No longer need to restart */
+    _rstrt = false;
+
     /* Starts inside the ghost house and leaves immediately */
     _loc = Location(PINKY_X0, PINKY_Y0);
     _spd = SPD_PINKY;
+    _st = JAIL;
+
+    /* Wait minimum one second so we don't overlap blinky */
+    usleep(1000000);
 
     /* Wait until blinky is no longer at the starting spot. */
-    while (_game->cellOccupiedByGhost(GHOST_EXIT_X, GHOST_EXIT_Y)) {}
+    while (_game->cellOccupiedByGhost(GHOST_EXIT_X, GHOST_EXIT_Y)) {
+        usleep(1000);
+    }
+
+    /* Location is now outside the ghost cell */
+    _loc = Location(GHOST_EXIT_X, GHOST_EXIT_Y);
+
+    /* Set state */
+    _st = _game->ghostState;
 }
 
 void Pinky::move() {
@@ -326,6 +351,11 @@ void Pinky::move() {
 
     /* Move until the game is over. */
     while (_game->isRunning) {
+        /* If we are at start condition, run onStart to start over because
+           Pacman died */
+        if (_rstrt)
+            this->onStart();
+
         /* Get Pacman's location and direction for simplicity */
         Location pac = _game->pacman->getLocation();
         Direction pacD = _game->pacman->getDirection();
@@ -338,21 +368,36 @@ void Pinky::move() {
         else if (_st == SCATTER || _st == SCATTER_INT) {
             _tgt = Location(PINKY_SCAT_X, PINKY_SCAT_Y);
         }
+        else if (_st == DYING && _tgt == _loc) {
+            _st = _game->ghostState;
+        }
 
         /* Update the location based on the target, state, etc */
         updateLocation();
 
         /* Wait 1/speed seconds to emulate proper movement */
-        usleep(1000000 / _spd);
+        usleep((1 - (0.5 * (_st == DYING))) * 1000000 / _spd / (1 - (_st == FRIGHTENED) * 0.4));
     }
 }
 
 /***** INKY *****/
 void Inky::onStart() {
+    /* No longer need to restart */
+    _rstrt = false;
+
     /* Starts inside the ghost house until Pacman eats 30 dots */
     _loc = Location(INKY_X0, INKY_Y0);
     _spd = SPD_INKY;
-    while (_game->dotsEaten < 30) {}
+    _st = JAIL;
+
+    /* Wait minimum 2 seconds so it doesn't overlap pinky */
+    usleep(2000000);
+    while (_game->dotsEaten < 30 && _game->isRunning) {
+        usleep(1000);
+    }
+
+    _st = _game->ghostState;
+    _loc = Location(GHOST_EXIT_X, GHOST_EXIT_Y);
 }
 
 void Inky::move() {
@@ -362,6 +407,11 @@ void Inky::move() {
 
     /* Move until the game is over. */
     while (_game->isRunning) {
+        /* If we are at start condition, run onStart to start over because
+           Pacman died */
+        if (_rstrt)
+            this->onStart();
+
         /* Get Pacman's location and direction for simplicity */
         Location pac = _game->pacman->getLocation();
         Direction pacD = _game->pacman->getDirection();
@@ -382,22 +432,37 @@ void Inky::move() {
         else if (_st == SCATTER || _st == SCATTER_INT) {
             _tgt = Location(INKY_SCAT_X, INKY_SCAT_Y);
         }
+        else if (_st == DYING && _tgt == _loc) {
+            _st = _game->ghostState;
+        }
 
         /* Update the location based on the target, state, etc */
         updateLocation();
 
         /* Wait 1/speed seconds to emulate proper movement */
-        usleep(1000000 / _spd);
+        usleep((1 - (0.5 * (_st == DYING))) * 1000000 / _spd / (1 - (_st == FRIGHTENED) * 0.4));
     }
 }
 
 /***** CLYDE *****/
 void Clyde::onStart() {
+    /* No longer need to restart */
+    _rstrt = false;
+
     /* Starts inside the ghost house and waits until Pacman has
        eaten at least 1/3 of the dots. */
     _loc = Location(CLYDE_X0, CLYDE_Y0);
     _spd = SPD_CLYDE;
-    while (_game->dotsEaten < _game->dotsLeft/2) {}
+    _st = JAIL;
+
+    /* Wait minimum 3 seconds so we don't overlap inky */
+    usleep(3000000);
+    while (_game->dotsEaten <= (float)_game->dotsLeft/2 && _game->isRunning) {
+        usleep(1000);
+    }
+
+    _st = _game->ghostState;
+    _loc = Location(GHOST_EXIT_X, GHOST_EXIT_Y);
 }
 
 void Clyde::move() {
@@ -407,6 +472,11 @@ void Clyde::move() {
 
     /* Move until the game is over. */
     while (_game->isRunning) {
+        /* If we are at start condition, run onStart to start over because
+           Pacman died */
+        if (_rstrt)
+            this->onStart();
+
         /* Get Pacman's location and direction for simplicity */
         Location pac = _game->pacman->getLocation();
 
@@ -424,11 +494,14 @@ void Clyde::move() {
         else if (_st == SCATTER || _st == SCATTER_INT) {
             _tgt = Location(CLYDE_SCAT_X, CLYDE_SCAT_Y);
         }
+        else if (_st == DYING && _tgt == _loc) {
+            _st = _game->ghostState;
+        }
 
         /* Update the location based on the target, state, etc */
         updateLocation();
 
         /* Wait 1/speed seconds to emulate proper movement */
-        usleep(1000000 / _spd);
+        usleep((1 - (0.5 * (_st == DYING))) * 1000000 / _spd / (1 - (_st == FRIGHTENED) * 0.4));
     }
 }

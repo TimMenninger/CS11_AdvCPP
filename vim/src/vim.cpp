@@ -15,7 +15,11 @@ Vim::Vim(string filename) {
 
     /* Set up document */
     _filename = filename;
-    _doc = std::shared_ptr<Document>(new Document(filename));
+    _tempFilename = generateTempFilename();
+    if (access( _tempFilename.c_str(), F_OK ) != -1)
+        _doc = std::shared_ptr<Document>(new Document(_tempFilename));
+    else
+        _doc = std::shared_ptr<Document>(new Document(_filename));
 
     /* Set up display */
     _disp = std::shared_ptr<Display>(new Display);
@@ -51,7 +55,9 @@ Vim::Vim(string filename) {
 
  Returns:   None.
 */
-Vim::~Vim() {}
+Vim::~Vim() {
+    delete changes;
+}
 
 /*
  outputFileToDisplay
@@ -77,6 +83,22 @@ void Vim::outputFileToDisplay() {
 
     /* Refresh the window */
     _disp->refreshWindow(_textWindow);
+}
+
+/*
+ generateTempFilename
+
+ This takes the filename of the file being edited and creates a temporary
+ filename that the autosaved file is saved to. This currently just appends
+ "_temp" to the filename and does no checking for whether another file
+ already has this name.
+
+ Arguments: None.
+
+ Returns:   string - the filename to use
+*/
+string Vim::generateTempFilename() {
+    return _filename + "_temp";
 }
 
 /*
@@ -183,16 +205,16 @@ void Vim::setCursor(int line, int col, bool incNL) {
 }
 
 /*
- run
+ keyListener
 
- Runs the Vim emulator.
+ This listens for keypresses and responds accordingly.
 
  Arguments: None.
 
  Returns:   None.
 */
-void Vim::run() {
-    while (1) {
+void Vim::keyListener() {
+    while (!done) {
         /* Get the next character, then use the state machine to decide what
            to do with it. */
         int c = getch();
@@ -240,7 +262,7 @@ void Vim::run() {
             QUIT WITHOUT SAVING
             ************************************/
             else if (c == 'Q')
-                return;
+                done = true;
             /************************************
             DELETE CHARACTER
             ************************************/
@@ -420,7 +442,7 @@ void Vim::run() {
             }
             break;
         default:
-            return;
+            done = true;
         }
 
         /* Reset the counter for action times unless this was a character that
@@ -428,4 +450,59 @@ void Vim::run() {
         if (_state != DEFAULT || c < '0' || c > '9')
             _times = -1;
     }
+}
+
+/*
+ autoRecovery
+
+ This function has an infinite loop that auto saves the file to a temporary
+ location every so often. It should be run on a thread of its own.
+
+ Arguments: None.
+
+ Returns:   None.
+*/
+void Vim::autoRecovery() {
+    /* Count how many seconds have passed (we have one loop per second) */
+    int nSecs = 0;
+
+    /* Autosave in a loop until a thread sends done signal */
+    while (!done) {
+        /* If we waited long enough, do the autosave */
+        if (nSecs > AUTO_SAVE_SECS) {
+            _doc->save(_tempFilename);
+        }
+
+        /* Sleep one second */
+        usleep(1000000);
+        ++nSecs;
+    }
+
+    /* If we exited the while loop, it was intended, so we will delete the
+       temporary file. */
+    remove(_tempFilename.c_str());
+}
+
+/*
+ run
+
+ Runs the Vim emulator.
+
+ Arguments: None.
+
+ Returns:   None.
+*/
+void Vim::run() {
+    /* Initially not done, of course */
+    done = false;
+
+    /* This thread is purely used for autorecovery */
+    thread tAutoRecovery(&Vim::autoRecovery, this);
+
+    /* This thread listens for keypresses and updates file accordingly */
+    thread tKeyListener(&Vim::keyListener, this);
+
+    /* Join all of the threads before exiting */
+    tAutoRecovery.join();
+    tKeyListener.join();
 }

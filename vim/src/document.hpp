@@ -2,9 +2,16 @@
 #define DOCUMENT
 
 #include "display.hpp"
+#include <assert.h>
 #include <fstream>
 #include <string>
 #include <vector>
+#include <mutex>
+#include <shared_mutex>
+#include <math.h>
+
+/* Line locks will lock segments of this many lines. */
+#define LOCK_LINES      10
 
 using namespace std;
 
@@ -24,6 +31,22 @@ private:
     Cursor          cursor;     /* The location of the cursor. */
     bool            dirty;      /* Keeps track of if changes have been made. */
 
+    /********************
+    LOCKS
+    ********************/
+    shared_timed_mutex  fileLock;   /* Locks the entire file */
+    shared_timed_mutex  *lineLocks; /* Locks for line groups */
+    mutex               upgradeLock;/* This lock is for the rare case in which
+                                       we have a read lock on the file, and
+                                       need to upgrade to a write lock while
+                                       guaranteeing that no other thread edited
+                                       anything in the file. We lock the
+                                       upgrade lock, un-read-lock the file,
+                                       write-lock the file, unlock upgrade. */
+
+    /********************
+    PRIVATE HELPERS
+    ********************/
     void importFile(string);
 
 public:

@@ -1,5 +1,5 @@
 #include "document.hpp"
-
+#include <iostream>
 /*
  Document
 
@@ -16,6 +16,9 @@ Document::Document(string fn) {
 
     /* Populate the file if applicable. */
     importFile(fn);
+
+    /* Create the array of line locks */
+    lineLocks = new shared_timed_mutex[ceil((float) file.size()/LOCK_LINES)];
 }
 
 /*
@@ -28,7 +31,7 @@ Document::Document(string fn) {
  Returns:   None.
 */
 Document::~Document() {
-    /* Nothing here when using smart pointers */
+    delete[] lineLocks;
 }
 
 /*
@@ -50,6 +53,12 @@ void Document::importFile(string filename) {
         /* Get a line */
         string line;
 
+        /* If we acquire a write lock on the entire file, we don't need to
+           worry about individual lines. */
+        upgradeLock.lock();
+        fileLock.lock();
+        upgradeLock.unlock();
+
         while (!f.eof()) {
             /* Read the line */
             getline(f, line);
@@ -62,6 +71,9 @@ void Document::importFile(string filename) {
 
         /* Because of while condition, we have one extra line */
         file.pop_back();
+
+        /* Release the lock */
+        fileLock.unlock();
     }
 
     /* Make sure to close the file. */
@@ -125,12 +137,25 @@ void Document::insert(char c) {
     /* The file is now changed/dirty */
     dirty = true;
 
+    /* Read lock the file (because we aren't changing pointers) and write lock
+       the appropriate line (because we are changing the line) */
+    fileLock.lock_shared();
+    lineLocks[cursor.line/LOCK_LINES].lock();
+
     /* Insert the character, moving the cursor right one */
     file[cursor.line].insert(file[cursor.line].begin() + cursor.col++, c);
 
     /* If the character is a newline, we must create a new line with
        the current character and everything to its right. */
     if (c == '\n' || c == '\r') {
+        /* If here, we now need to write lock the file so we can insert a line
+           into it. */
+        upgradeLock.lock();
+        lineLocks[cursor.line/LOCK_LINES].unlock();
+        fileLock.unlock_shared();
+        fileLock.lock();
+        upgradeLock.unlock();
+
         /* Everything to the right of the cursor including itself. We
            increment the cursor line number to the place where we want to
            put the line right before. */
@@ -141,7 +166,19 @@ void Document::insert(char c) {
            but we want the column to be at the left of the line now. */
         file.insert(file.begin() + cursor.line, newline);
         cursor.col = 0;
+
+        /* Now, we need to check if adding a line requires that we add
+           another line lock. We know that we only obtained the write lock
+           on the entire file because no thread is holding a line lock, and
+           thus we need check nothing before doing this. */
+        delete[] lineLocks;
+        lineLocks = new shared_timed_mutex[ceil((float) file.size()/LOCK_LINES)];
+
+        /* Unlock the file. */
+        fileLock.unlock();
     }
+    else
+        lineLocks[cursor.line/LOCK_LINES].unlock();
 }
 
 /*
@@ -157,6 +194,10 @@ void Document::insert(char c) {
  Returns:   char - the deleted character.
 */
 char Document::deleteChar() {
+    /* We want to return the character that got deleted, or the NULL character
+       if nothing gets deleted */
+    char deleted = '\0';
+
     /* If the column is 0, i.e. we're at the left of a line, first append
        this line to the one above if there is one. We will then go on to
        delete normally, which will remove the newline that separates the
@@ -170,25 +211,48 @@ char Document::deleteChar() {
            decrementing before. */
         cursor.col = file[cursor.line].size();
 
+        /* We will be writing to the entire file because we are deleting
+           a line, so we just take a write lock on everything. */
+        upgradeLock.lock();
+        fileLock.lock();
+        upgradeLock.unlock();
+
         /* Concatenate the two strings into this one. */
         file[cursor.line].insert(cursor.col, file[cursor.line+1]);
 
         /* Remove the original line that was moved to the line above. */
         file.erase(file.begin() + cursor.line + 1);
-    }
 
+        /* Delete the character */
+        deleted = file[cursor.line].at(cursor.col-1);
+        file[cursor.line].erase(file[cursor.line].begin() + --cursor.col);
+
+        /* Release the file lock and acquire */
+        fileLock.unlock();
+    }
     /* Delete a character (if we were at the beginning of a line, we will
        erase the newline here). If we are at the beginning of a line, we
        are at the beginning of the file and won't delete anything. */
-    char deleted = '\0';
-    if (file[cursor.line].size() == 1)
+    else if (file[cursor.line].size() == 1)
         cursor.col--;
     else if (cursor.col != 0) {
         /* The file is now dirty */
         dirty = true;
+
+        /* Take a read lock on the file since we aren't changing lines, and
+           a write lock on the line we are editing. */
+        upgradeLock.lock();
+        fileLock.lock_shared();
+        upgradeLock.unlock();
+        lineLocks[cursor.line/LOCK_LINES].lock();
+
         /* Delete the character */
         deleted = file[cursor.line].at(cursor.col-1);
         file[cursor.line].erase(file[cursor.line].begin() + --cursor.col);
+
+        /* Release locks */
+        lineLocks[cursor.line/LOCK_LINES].unlock();
+        fileLock.unlock_shared();
     }
 
     return deleted;
@@ -209,10 +273,23 @@ void Document::save(string toSaveTo) {
 
     /* Write each line, which should include newlines for us. */
     int currLine = -1;
-    while (++currLine < file.size())
+
+    /* Take a read lock on the file */
+    upgradeLock.lock();
+    fileLock.lock_shared();
+    upgradeLock.unlock();
+
+    /* Write the lines */
+    while (++currLine < file.size()) {
+        lineLocks[currLine/LOCK_LINES].lock();
         f.write(file[currLine].c_str(), file[currLine].size());
+        lineLocks[currLine/LOCK_LINES].unlock();
+    }
 
     f.close();
+
+    /* Release the lock */
+    fileLock.unlock_shared();
 }
 
 /*
@@ -226,10 +303,22 @@ void Document::save(string toSaveTo) {
  Returns:   string - the line at the argued index.
 */
 string Document::getLine(int line) {
+    /* The line of the file */
+    string out = string("");
+
+    /* Get a read lock on the file to get its size. */
+    upgradeLock.lock();
+    fileLock.lock_shared();
+    upgradeLock.unlock();
+
     /* Return empty string if the line is out of range */
-    if (line < 0 || line >= file.size())
-        return string("");
-    return file[line];
+    if (line >= 0 && line < file.size())
+        out = file[line];
+
+    /* Release the lock before returning */
+    fileLock.unlock_shared();
+
+    return out;
 }
 
 /*
@@ -269,13 +358,25 @@ void Document::setDirty(bool d) {
  Returns:   None.
 */
 void Document::getDimensions(int &nLines, int &nChars) {
+    /* Take out a read lock on the file to get its size and the size of all
+       of its contents */
+    upgradeLock.lock();
+    fileLock.lock_shared();
+    upgradeLock.unlock();
+
     /* Zero out the characters argument */
     nLines = file.size();
     nChars = 0;
 
     /* Count */
-    for (int i = 0; i < nLines; i++)
+    for (int i = 0; i < nLines; i++) {
+        lineLocks[i/LOCK_LINES].lock_shared();
         nChars += file[i].size();
+        lineLocks[i/LOCK_LINES].unlock_shared();
+    }
+
+    /* Release the file lock */
+    fileLock.unlock_shared();
 }
 
 /*
@@ -289,6 +390,10 @@ void Document::getDimensions(int &nLines, int &nChars) {
  Arguments: None.
 
  Returns:   Cursor - location of the next word.
+
+ Note:      This is not thread safe! This is created on the assumption that
+            the same thread that searches for words is the one that edits the
+            file, so there is no need to lock here.
 */
 Cursor Document::nextWord() {
     /* Flag tells us if we've found whitespace, which means the next character
@@ -356,6 +461,10 @@ Cursor Document::nextWord() {
 
  Bugs:      When in the middle of the word, this takes you to the beginning of
             the previous word instead of the beginning of the current word.
+
+            Note:       This is not thread safe! This is created on the assumption that
+                        the same thread that searches for words is the one that edits the
+                        file, so there is no need to lock here.
 */
 Cursor Document::prevWord() {
     int c = cursor.col, l = cursor.line;
@@ -408,6 +517,10 @@ Cursor Document::prevWord() {
  Arguments: None.
 
  Returns:   Cursor - location of end of word.
+
+ Note:      This is not thread safe! This is created on the assumption that
+            the same thread that searches for words is the one that edits the
+            file, so there is no need to lock here.
 */
 Cursor Document::endOfWord() {
     int l = cursor.line, c = cursor.col;

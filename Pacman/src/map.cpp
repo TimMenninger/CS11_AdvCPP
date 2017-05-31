@@ -1,5 +1,5 @@
 #include "map.hpp"
-
+#include <iostream>
 /*
  Map
 
@@ -83,6 +83,7 @@ void Map::readFromFile(const char *filename) {
             _cells[row][col].type = decideCellType(next);
         } while (col++ < _width);
     } while (row++ < _height);
+    exit(1);
 }
 
 /*

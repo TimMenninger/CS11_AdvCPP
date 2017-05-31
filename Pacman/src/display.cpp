@@ -99,6 +99,10 @@ void Display::putChar(WindowSPtr w, unsigned int x, unsigned int y, char c, bool
  Returns:   None.
 */
 void Display::putLine(WindowSPtr w, unsigned int y, char *line, bool rfsh) {
+    /* Clear the line before writing */
+    wmove(w, y, 0);
+    wclrtoeol(w);
+
     for (int x = 0; *line != 0 && x < COLS; line++)
         /* Move the window curser then place the character */
         putChar(w, x++, y, *line, false);

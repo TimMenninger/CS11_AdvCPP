@@ -38,6 +38,7 @@ public:
     MEMBER FUNCTIONS
     ********************/
     void move();
+    void onStart();
 };
 
 #endif // ifndef PACMAN

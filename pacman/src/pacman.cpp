@@ -65,6 +65,21 @@ Direction Pacman::getDirection() {
 }
 
 /*
+ onStart
+
+ This initializes Pacman (can be called after death).
+
+ Arguments: None.
+
+ Returns:   None.
+*/
+void Pacman::onStart() {
+    /* Set position to beginning */
+    _loc = Location(PACMAN_X0, PACMAN_Y0);
+    _dir = W;
+}
+
+/*
  move
 
  An infinte loop that perpetually moves pacman in the direction he is
@@ -87,6 +102,11 @@ void Pacman::move() {
         /* Move in the proper direction unless there is a wall. */
         if (!_game->isWall(next.x, next.y))
             _loc = next;
+        /* Check if we are at a portal */
+        if (_loc == Location(L_PORT_X, L_PORT_Y) && _dir == W)
+            _loc = Location(R_PORT_X, R_PORT_Y);
+        else if (_loc == Location(R_PORT_X, R_PORT_Y) && _dir == E)
+            _loc = Location(L_PORT_X, L_PORT_Y);
 
         /* Wait for 1/speed seconds so we move at the correct rate */
         usleep(1000000 / _spd);

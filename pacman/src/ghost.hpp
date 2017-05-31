@@ -14,15 +14,6 @@
 /* Declare this here so we can use it in our Ghost */
 class Game;
 
-/* Ghosts can be in one of three states.  This enum defines those. */
-enum GhostState {
-    SCATTER,
-    SCATTER_INT, /* Intermediate value so ghosts know state changed */
-    CHASE,
-    FRIGHTENED,
-    DYING, /* This is when they are on their way to the ghost house */
-};
-
 /* The ghost class is the parent of the four individual ghosts in Pacman;
    Inky, Blinky, Pinky and Clyde */
 class Ghost {
@@ -34,6 +25,11 @@ protected:
     Location    _tgt;   /* The target cell of the ghost. */
 
     std::shared_ptr<Game> _game; /* The game this is a part of */
+
+    bool        _rstrt; /* When true, we want to run onStart. We need a flag
+                           because we can't have a thread call functions that
+                           block (onStart's block) and the wait in the moves
+                           are too quick to set a state */
 
     /* Returns the directions the ghost can move given its location,
        direction and state. */
@@ -51,7 +47,7 @@ public:
     /********************
     DESTRUCTORS
     ********************/
-    ~Ghost();
+    virtual ~Ghost();
 
     /********************
     MEMBER FUNCTIONS
@@ -59,12 +55,14 @@ public:
     Location getLocation();
     Location getTarget();
     void setState(GhostState);
+    GhostState getState();
     void onDeath();
+    void restart() { _rstrt = true; };
 
     /********************
     INTERFACE FUNCTIONS
     ********************/
-    virtual void onStart() {};
+    virtual void onStart() {} ;
     virtual void move() {};
 };
 
@@ -74,6 +72,8 @@ class Inky : public Ghost {
 public:
     /* Constructor */
     Inky(std::shared_ptr<Game> g) : Ghost(g) {};
+    /* Destructor */
+    ~Inky() {};
     /* Interface implementation */
     void onStart();
     void move();
@@ -83,6 +83,8 @@ class Blinky : public Ghost {
 public:
     /* Constructor */
     Blinky(std::shared_ptr<Game> g) : Ghost(g) {};
+    /* Destructor */
+    ~Blinky() {};
     /* Interface implementation */
     void onStart();
     void move();
@@ -92,6 +94,8 @@ class Pinky : public Ghost {
 public:
     /* Constructor */
     Pinky(std::shared_ptr<Game> g) : Ghost(g) {};
+    /* Destructor */
+    ~Pinky() {};
     /* Interface implementation */
     void onStart();
     void move();
@@ -101,6 +105,8 @@ class Clyde : public Ghost {
 public:
     /* Constructor */
     Clyde(std::shared_ptr<Game> g) : Ghost(g) {};
+    /* Destructor */
+    ~Clyde() {};
     /* Interface implementation */
     void onStart();
     void move();
