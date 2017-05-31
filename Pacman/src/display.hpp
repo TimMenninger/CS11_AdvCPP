@@ -15,7 +15,7 @@ public:
     CONSTRUCTORS
     ********************/
     WindowSPtr() : win(nullptr), nRefs(nullptr) {};
-    WindowSPtr(WINDOW *wptr) : win(wptr) {
+    explicit WindowSPtr(WINDOW *wptr) : win(wptr) {
         nRefs = new int(1);
     };
 

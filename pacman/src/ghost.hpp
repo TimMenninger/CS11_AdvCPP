@@ -42,7 +42,7 @@ public:
     /********************
     CONSTRUCTORS
     ********************/
-    Ghost(std::shared_ptr<Game>);
+    explicit Ghost(std::shared_ptr<Game>);
 
     /********************
     DESTRUCTORS
@@ -71,7 +71,7 @@ public:
 class Inky : public Ghost {
 public:
     /* Constructor */
-    Inky(std::shared_ptr<Game> g) : Ghost(g) {};
+    explicit Inky(std::shared_ptr<Game> g) : Ghost(g) {};
     /* Destructor */
     ~Inky() {};
     /* Interface implementation */
@@ -82,7 +82,7 @@ public:
 class Blinky : public Ghost {
 public:
     /* Constructor */
-    Blinky(std::shared_ptr<Game> g) : Ghost(g) {};
+    explicit Blinky(std::shared_ptr<Game> g) : Ghost(g) {};
     /* Destructor */
     ~Blinky() {};
     /* Interface implementation */
@@ -93,7 +93,7 @@ public:
 class Pinky : public Ghost {
 public:
     /* Constructor */
-    Pinky(std::shared_ptr<Game> g) : Ghost(g) {};
+    explicit Pinky(std::shared_ptr<Game> g) : Ghost(g) {};
     /* Destructor */
     ~Pinky() {};
     /* Interface implementation */
@@ -104,7 +104,7 @@ public:
 class Clyde : public Ghost {
 public:
     /* Constructor */
-    Clyde(std::shared_ptr<Game> g) : Ghost(g) {};
+    explicit Clyde(std::shared_ptr<Game> g) : Ghost(g) {};
     /* Destructor */
     ~Clyde() {};
     /* Interface implementation */

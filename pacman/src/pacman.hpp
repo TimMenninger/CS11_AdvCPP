@@ -20,7 +20,7 @@ public:
     /********************
     CONSTRUCTORS
     ********************/
-    Pacman(std::shared_ptr<Game>);
+    explicit Pacman(std::shared_ptr<Game>);
 
     /********************
     DESTRUCTORS

@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <fstream>
 #include <memory>
+#include "common.hpp"
 
 /* The number of characters in a cell */
 #define CELL_SIZE       3
@@ -36,8 +37,8 @@ private:
     /********************
     MEMBERS
     ********************/
-    static const unsigned int _width  = 84; /* Width of map */
-    static const unsigned int _height = 33; /* Height of map */
+    static const unsigned int _width  = MAP_WIDTH;  /* Width of map */
+    static const unsigned int _height = MAP_HEIGHT; /* Height of map */
     CellArray _cells;
 
     /********************
@@ -50,7 +51,7 @@ public:
     /********************
     CONSTRUCTORS
     ********************/
-    Map(const char *filename);
+    explicit Map(const char *filename);
 
     /********************
     DESTRUCTORS

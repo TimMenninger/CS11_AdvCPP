@@ -55,7 +55,7 @@ public:
     CONSTRUCTORS
     ********************/
     Document();
-    Document(string filename);
+    explicit Document(string filename);
 
     /********************
     DESTRUCTORS

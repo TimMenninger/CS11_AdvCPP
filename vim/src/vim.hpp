@@ -51,7 +51,7 @@ public:
     /********************
     CONSTRUCTORS
     ********************/
-    Vim(string filename);
+    explicit Vim(string filename);
 
     /********************
     DESTRUCTORS
